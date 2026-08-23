@@ -18,7 +18,7 @@ on:
       DEVICE_TREE_BRANCH:
         description: 'DEVICE_TREE_BRANCH'
         required: true
-        default: 'android-12.1'
+        default: 'main'
       DEVICE_PATH:
         description: 'DEVICE_PATH'
         required: true
@@ -30,9 +30,9 @@ on:
       MAKEFILE_NAME:
         description: 'MAKEFILE_NAME'
         required: true
-        default: 'twrp_tanzanite'
+        default: 'fox_tanzanite'
       BUILD_TARGET:
-        description: 'BUILD_TARGET (recovery / boot / vendor_boot)'
+        description: 'BUILD_TARGET'
         required: true
         default: 'recovery'
 
@@ -102,17 +102,19 @@ jobs:
         export LC_ALL="C"
         export TW_DEFAULT_LANGUAGE="en"
         
+        # Disable strict error checking during environment setup to prevent vendorsetup failure
+        set +e
         source build/envsetup.sh
         lunch ${{ github.event.inputs.MAKEFILE_NAME }}-eng
+        set -e
         
         make clean
         mka adbd ${{ github.event.inputs.BUILD_TARGET }}image -j$(nproc --all)
 
-    - name: Prepare build artifacts for release
+    - name: Prepare build artifacts
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
       run: |
         mkdir -p ${{ steps.pwd.outputs.workspace-folder }}/artifacts/
-        echo "=== Locating all generated files ==="
         find out/target/product/ -type f \( -name "*.img" -o -name "*.zip" \) -exec cp {} ${{ steps.pwd.outputs.workspace-folder }}/artifacts/ \;
         ls -la ${{ steps.pwd.outputs.workspace-folder }}/artifacts/
 
