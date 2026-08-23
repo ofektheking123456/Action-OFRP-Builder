@@ -87,7 +87,7 @@ jobs:
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
       run: |
         rm -rf ${{ github.event.inputs.DEVICE_PATH }}
-        git clone ${{ github.event.inputs.DEVICE_TREE_URL }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ${{ github.event.inputs.DEVICE_PATH }}
+        git clone ${{ github.event.inputs.DEVICE_TREE_URL }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ${{ github.event.inputs.DEVICE_PATH }} || git clone ${{ github.event.inputs.DEVICE_TREE_URL }} ${{ github.event.inputs.DEVICE_PATH }}
 
     - name: Set Swap Space
       uses: pierotofy/set-swap-space@master
