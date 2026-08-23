@@ -38,7 +38,7 @@ on:
       MAKEFILE_NAME:
         description: 'MAKEFILE_NAME'
         required: true
-        default: 'fox_tanzanite'
+        default: 'omni_tanzanite'
       BUILD_TARGET:
         description: 'BUILD_TARGET'
         required: true
@@ -105,7 +105,7 @@ jobs:
       run: |
         cd fox_${{ github.event.inputs.MANIFEST_BRANCH }}
         git clone ${{ github.event.inputs.DEVICE_TREE_URL }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ./${{ github.event.inputs.DEVICE_PATH }} || git clone ${{ github.event.inputs.DEVICE_TREE_URL }} ./${{ github.event.inputs.DEVICE_PATH }}
-        
+
     - name: Clone common tree
       if: ${{ github.event.inputs.COMMON_TREE_URL != '' && github.event.inputs.COMMON_PATH != '' }}
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}
@@ -124,16 +124,14 @@ jobs:
         cd fox_${{ github.event.inputs.MANIFEST_BRANCH }}
         set +e
         source build/envsetup.sh
-        # Include vendorsetup.sh if available
         [ -f ${{ github.event.inputs.DEVICE_PATH }}/vendorsetup.sh ] && source ${{ github.event.inputs.DEVICE_PATH }}/vendorsetup.sh
         export ALLOW_MISSING_DEPENDENCIES=true
         set -e
         lunch ${{ github.event.inputs.MAKEFILE_NAME }}-eng && make clean && mka adbd ${{ github.event.inputs.BUILD_TARGET }}image -j$(nproc --all)
-        
+
     - name: Check output directory
       run: |
-        echo "=== Output directory content ==="
-        ls -la ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/
+        ls -la ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/ || true
 
     - name: Upload to Release
       uses: softprops/action-gh-release@v2
@@ -142,9 +140,11 @@ jobs:
           ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/*.img
           ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/*.zip
           ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/OrangeFox*.zip
-        name: OrangeFox-${{ github.event.inputs.DEVICE_NAME }}-${{ github.run_id }}
-        tag_name: build-${{ github.run_id }}
+        name: ${{ github.event.inputs.DEVICE_NAME }}-${{ github.run_id }}
+        tag_name: ${{ github.run_id }}
         body: |
-          Build completed for ${{ github.event.inputs.DEVICE_NAME }} (Branch: ${{ github.event.inputs.MANIFEST_BRANCH }})
+          Manifest: ${{ github.event.inputs.MANIFEST_BRANCH }}
+          Device: ${{ github.event.inputs.DEVICE_NAME }}
+          Target: ${{ github.event.inputs.BUILD_TARGET }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
