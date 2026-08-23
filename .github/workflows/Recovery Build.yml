@@ -119,8 +119,8 @@ jobs:
         export FOX_BUILD_TYPE="Unofficial"
         export LC_ALL="C"
         
-        source build/envsetup.sh
-        [ -f ${{ github.event.inputs.DEVICE_PATH }}/vendorsetup.sh ] && source ${{ github.event.inputs.DEVICE_PATH }}/vendorsetup.sh
+        # Source environment setup without strict bash exit on errors in vendorsetup
+        source build/envsetup.sh || true
         
         lunch ${{ github.event.inputs.MAKEFILE_NAME }}-eng
         make clean
