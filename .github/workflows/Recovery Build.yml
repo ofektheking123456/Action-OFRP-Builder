@@ -124,10 +124,12 @@ jobs:
         cd fox_${{ github.event.inputs.MANIFEST_BRANCH }}
         set +e
         source build/envsetup.sh
+        # Include vendorsetup.sh if available
+        [ -f ${{ github.event.inputs.DEVICE_PATH }}/vendorsetup.sh ] && source ${{ github.event.inputs.DEVICE_PATH }}/vendorsetup.sh
         export ALLOW_MISSING_DEPENDENCIES=true
         set -e
         lunch ${{ github.event.inputs.MAKEFILE_NAME }}-eng && make clean && mka adbd ${{ github.event.inputs.BUILD_TARGET }}image -j$(nproc --all)
-
+        
     - name: Check output directory
       run: |
         echo "=== Output directory content ==="
