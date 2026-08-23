@@ -10,7 +10,7 @@ on:
       MANIFEST_BRANCH:
         description: 'MANIFEST_BRANCH'
         required: true
-        default: '11.0'
+        default: '12.1'
       DEVICE_TREE_URL:
         description: 'DEVICE_TREE_URL'
         required: true
@@ -68,7 +68,6 @@ jobs:
     - name: Prepare the build environment
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}
       run: |
-        # Force Git to use HTTPS instead of SSH for non-interactive submodule fetching
         git config --global url."https://gitlab.com/".insteadOf "git@gitlab.com:"
         git config --global url."https://github.com/".insteadOf "git@github.com:"
 
@@ -130,7 +129,7 @@ jobs:
         lunch ${{ github.event.inputs.MAKEFILE_NAME }}-eng && make clean && mka adbd ${{ github.event.inputs.BUILD_TARGET }}image -j$(nproc --all)
       continue-on-error: true
 
-    - name: Check the output directory before uploading
+    - name: Check output directory
       run: |
         ls -al ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/ || true
 
