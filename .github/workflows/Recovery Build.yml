@@ -18,17 +18,17 @@ on:
       DEVICE_TREE_BRANCH:
         description: 'DEVICE_TREE_BRANCH'
         required: true
-        default: 'android-12.1'
+        default: '12.1'
       DEVICE_PATH:
         description: 'DEVICE_PATH'
         required: true
         default: 'device/xiaomi/tanzanite'
       COMMON_TREE_URL:
-        description: 'COMMON_TREE_URL (if no common tree, leave blank)'
+        description: 'COMMON_TREE_URL'
         required: false
         default: ''
       COMMON_PATH:
-        description: 'COMMON_PATH (if no common tree, leave blank)'
+        description: 'COMMON_PATH'
         required: false
         default: ''
       DEVICE_NAME:
@@ -38,7 +38,7 @@ on:
       MAKEFILE_NAME:
         description: 'MAKEFILE_NAME'
         required: true
-        default: 'omni_tanzanite'
+        default: 'fox_tanzanite'
       BUILD_TARGET:
         description: 'BUILD_TARGET'
         required: true
@@ -87,13 +87,7 @@ jobs:
         distribution: 'zulu'
         java-version: '11'
 
-    - name: Setup SSH Keys
-      if: ${{ (github.event.inputs.COMMON_TREE_URL != '' && startsWith(github.event.inputs.COMMON_TREE_URL, 'git@')) || startsWith(github.event.inputs.DEVICE_TREE_URL, 'git@') }}
-      uses: webfactory/ssh-agent@v0.9.0
-      with:
-        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-    - name: Sync OrangeFox sources and minimal manifest
+    - name: Sync OrangeFox sources
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}
       run: |
         git clone ${{ github.event.inputs.SYNC_URL }}
@@ -101,17 +95,17 @@ jobs:
         ./orangefox_sync.sh --branch ${{ github.event.inputs.MANIFEST_BRANCH }} --path ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
 
     - name: Clone device tree
-      working-directory: ${{ steps.pwd.outputs.workspace-folder }}
+      working-directory: ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
       run: |
-        cd fox_${{ github.event.inputs.MANIFEST_BRANCH }}
-        git clone ${{ github.event.inputs.DEVICE_TREE_URL }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ./${{ github.event.inputs.DEVICE_PATH }} || git clone ${{ github.event.inputs.DEVICE_TREE_URL }} ./${{ github.event.inputs.DEVICE_PATH }}
+        rm -rf ${{ github.event.inputs.DEVICE_PATH }}
+        git clone ${{ github.event.inputs.DEVICE_TREE_URL }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ${{ github.event.inputs.DEVICE_PATH }}
 
     - name: Clone common tree
       if: ${{ github.event.inputs.COMMON_TREE_URL != '' && github.event.inputs.COMMON_PATH != '' }}
-      working-directory: ${{ steps.pwd.outputs.workspace-folder }}
+      working-directory: ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
       run: |
-        cd fox_${{ github.event.inputs.MANIFEST_BRANCH }}
-        git clone ${{ github.event.inputs.COMMON_TREE_URL }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ./${{ github.event.inputs.COMMON_PATH }}
+        rm -rf ${{ github.event.inputs.COMMON_PATH }}
+        git clone ${{ github.event.inputs.COMMON_TREE_URL }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ${{ github.event.inputs.COMMON_PATH }}
 
     - name: Set Swap Space
       uses: pierotofy/set-swap-space@master
@@ -119,19 +113,23 @@ jobs:
         swap-size-gb: 12
 
     - name: Building recovery
-      working-directory: ${{ steps.pwd.outputs.workspace-folder }}
+      working-directory: ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
       run: |
-        cd fox_${{ github.event.inputs.MANIFEST_BRANCH }}
-        set +e
+        export ALLOW_MISSING_DEPENDENCIES=true
+        export FOX_BUILD_TYPE="Unofficial"
+        export LC_ALL="C"
+        
         source build/envsetup.sh
         [ -f ${{ github.event.inputs.DEVICE_PATH }}/vendorsetup.sh ] && source ${{ github.event.inputs.DEVICE_PATH }}/vendorsetup.sh
-        export ALLOW_MISSING_DEPENDENCIES=true
-        set -e
-        lunch ${{ github.event.inputs.MAKEFILE_NAME }}-eng && make clean && mka adbd ${{ github.event.inputs.BUILD_TARGET }}image -j$(nproc --all)
+        
+        lunch ${{ github.event.inputs.MAKEFILE_NAME }}-eng
+        make clean
+        mka adbd ${{ github.event.inputs.BUILD_TARGET }}image -j$(nproc --all)
 
     - name: Check output directory
+      working-directory: ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
       run: |
-        ls -la ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/ || true
+        ls -la out/target/product/${{ github.event.inputs.DEVICE_NAME }}/ || true
 
     - name: Upload to Release
       uses: softprops/action-gh-release@v2
@@ -140,11 +138,10 @@ jobs:
           ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/*.img
           ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/*.zip
           ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/OrangeFox*.zip
-        name: ${{ github.event.inputs.DEVICE_NAME }}-${{ github.run_id }}
+        name: OrangeFox-${{ github.event.inputs.DEVICE_NAME }}-${{ github.run_id }}
         tag_name: ${{ github.run_id }}
         body: |
-          Manifest: ${{ github.event.inputs.MANIFEST_BRANCH }}
-          Device: ${{ github.event.inputs.DEVICE_NAME }}
-          Target: ${{ github.event.inputs.BUILD_TARGET }}
+          Build completed for Redmi Note 14 4G (${{ github.event.inputs.DEVICE_NAME }})
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
