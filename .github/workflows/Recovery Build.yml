@@ -102,7 +102,11 @@ jobs:
         export LC_ALL="C"
         export TW_DEFAULT_LANGUAGE="en"
         
-        # Disable strict error checking during environment setup to prevent vendorsetup failure
+        # Screen resolution and theme variables for tanzanite
+        export TW_THEME="portrait_hdpi"
+        export TARGET_SCREEN_WIDTH=1080
+        export TARGET_SCREEN_HEIGHT=2400
+        
         set +e
         source build/envsetup.sh
         lunch ${{ github.event.inputs.MAKEFILE_NAME }}-eng
