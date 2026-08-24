@@ -104,7 +104,6 @@ jobs:
         export LC_ALL="C"
         export TW_DEFAULT_LANGUAGE="en"
         
-        # Screen resolution and brightness settings
         export TW_THEME="portrait_hdpi"
         export TARGET_SCREEN_WIDTH=1080
         export TARGET_SCREEN_HEIGHT=2400
@@ -117,23 +116,25 @@ jobs:
         set -e
         
         make clean
-        mka adbd ${{ github.event.inputs.BUILD_TARGET }}image -j$(nproc --all)
+        # Build recovery image and OrangeFox zip installer package
+        mka adbd recoveryimage recoveryzip vendor_bootimage -j$(nproc --all) || mka adbd bootimage recoveryzip -j$(nproc --all)
 
     - name: Prepare build artifacts
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
       run: |
         mkdir -p ${{ steps.pwd.outputs.workspace-folder }}/artifacts/
-        find out/target/product/ -type f \( -name "*.img" -o -name "*.zip" \) -exec cp {} ${{ steps.pwd.outputs.workspace-folder }}/artifacts/ \;
+        # Copy OrangeFox zip packages and all compiled images (.img / .zip)
+        find out/target/product/tanzanite/ -maxdepth 3 \( -name "*.img" -o -name "*.zip" \) -exec cp {} ${{ steps.pwd.outputs.workspace-folder }}/artifacts/ \;
+        echo "=== Artifacts Found ==="
         ls -la ${{ steps.pwd.outputs.workspace-folder }}/artifacts/
 
     - name: Upload to Release
       uses: softprops/action-gh-release@v2
       with:
         files: ${{ steps.pwd.outputs.workspace-folder }}/artifacts/*
-        name: OrangeFox-${{ github.event.inputs.DEVICE_NAME }}-${{ github.run_id }}
-        tag_name: ${{ github.run_id }}
+        name: OrangeFox-tanzanite-${{ github.run_id }}
+        tag_name: build-${{ github.run_id }}
         body: |
-          Build completed for ${{ github.event.inputs.DEVICE_NAME }}
+          OrangeFox Recovery build for Redmi Note 14 4G (tanzanite).
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
