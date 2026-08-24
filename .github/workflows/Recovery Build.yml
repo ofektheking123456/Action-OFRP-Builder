@@ -133,8 +133,17 @@ jobs:
     - name: Prepare Build Artifacts
       run: |
         mkdir -p output/
-        find workspace/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/ -type f \( -name "OrangeFox*.zip" -o -name "recovery.img" \) -exec cp {} output/ \;
-
+        cd workspace/out/target/product/${{ github.event.inputs.DEVICE_NAME }}
+        
+        # Copy recovery images and zip files
+        find . -type f \( -name "OrangeFox*.zip" -o -name "recovery.img" -o -name "boot.img" -o -name "vendor_boot.img" \) -exec cp {} ${{ github.workspace }}/output/ \;
+        
+        # Create tar file containing the recovery.img
+        cd ${{ github.workspace }}/output/
+        if [ -f "recovery.img" ]; then
+          tar -cvf OrangeFox-${{ github.event.inputs.DEVICE_NAME }}-fastboot.tar recovery.img
+        fi
+        
     - name: Upload Artifacts to Release
       uses: softprops/action-gh-release@v2
       with:
