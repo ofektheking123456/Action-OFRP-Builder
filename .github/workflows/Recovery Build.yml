@@ -60,14 +60,75 @@ jobs:
         cd fox_${{ github.event.inputs.MANIFEST_BRANCH }}
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
-        repo init -u https://gitlab.com/OrangeFox/Manifest.git -b fox_${{ github.event.inputs.MANIFEST_BRANCH }} --depth=1
-        repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune -j$(nproc --all)
+        
+        repo init -u https://gitlab.com/OrangeFox/Manifest.git \
+          -b fox_${{ github.event.inputs.MANIFEST_BRANCH }} \
+          --depth=1 \
+          --no-clone-bundle
+          
+        repo sync -c \
+          --no-clone-bundle \
+          --no-tags \
+          --optimized-fetch \
+          --prune \
+          -j$(nproc --all) \
+          --force-sync
 
     - name: Clone device tree
       run: |
         cd fox_${{ github.event.inputs.MANIFEST_BRANCH }}
         git clone ${{ github.event.inputs.DEVICE_TREE_URL }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ${{ github.event.inputs.DEVICE_PATH }}
 
+    - name: Set up ccache
+      uses: actions/cache@v4
+      with:
+        path: ~/.ccache
+        key: ccache-${{ github.event.inputs.MANIFEST_BRANCH }}-${{ github.sha }}
+        restore-keys: |
+          ccache-${{ github.event.inputs.MANIFEST_BRANCH }}-
+
+    - name: Building recovery
+      working-directory: ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
+      run: |
+        export ALLOW_MISSING_DEPENDENCIES=true
+        export DISABLE_ARTIFACT_PATH_REQUIREMENTS=true
+        export FOX_BUILD_TYPE="Unofficial"
+        export LC_ALL="C"
+        export TW_DEFAULT_LANGUAGE="en"
+        
+        # Enable & Configure ccache
+        export USE_CCACHE=1
+        export CCACHE_EXEC=$(which ccache)
+        export CCACHE_DIR=~/.ccache
+        export CCACHE_MAXSIZE=10G
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=6
+        ccache -M 10G
+        ccache -z # Reset statistics to measure this run's hits
+        
+        # Display & Brightness settings
+        export TW_THEME="portrait_hdpi"
+        export TARGET_SCREEN_WIDTH=1080
+        export TARGET_SCREEN_HEIGHT=2400
+        export TW_MAX_BRIGHTNESS=2047
+        export TW_DEFAULT_BRIGHTNESS=1200
+        
+        export FOX_USE_TWRP_RECOVERY_IMAGE_BUILDER=1
+        export OF_DISABLE_MIUI_SPECIFIC_FEATURES=1
+        
+        set +e
+        source build/envsetup.sh
+        lunch ${{ github.event.inputs.MAKEFILE_NAME }}-eng
+        set -e
+        
+        if [ -f vendor/fox/fox_build.sh ]; then
+          bash vendor/fox/fox_build.sh tanzanite
+        else
+          mka adbd recoveryimage bootimage vendor_bootimage -j$(nproc --all)
+        fi
+        
+        # Print ccache statistics after completion
+        ccache -s
     - name: Building recovery
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
       run: |
