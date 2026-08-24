@@ -104,6 +104,7 @@ jobs:
         export LC_ALL="C"
         export TW_DEFAULT_LANGUAGE="en"
         
+        # Screen resolution and brightness settings
         export TW_THEME="portrait_hdpi"
         export TARGET_SCREEN_WIDTH=1080
         export TARGET_SCREEN_HEIGHT=2400
@@ -116,15 +117,14 @@ jobs:
         set -e
         
         make clean
-        # Build recovery image and OrangeFox zip installer package
-        mka adbd recoveryimage recoveryzip vendor_bootimage -j$(nproc --all) || mka adbd bootimage recoveryzip -j$(nproc --all)
-
+        # Build recoveryimage (and fallback to bootimage if vendor_boot is used)
+        mka adbd recoveryimage -j$(nproc --all) || mka adbd bootimage -j$(nproc --all)
+        
     - name: Prepare build artifacts
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
       run: |
         mkdir -p ${{ steps.pwd.outputs.workspace-folder }}/artifacts/
-        # Copy OrangeFox zip packages and all compiled images (.img / .zip)
-        find out/target/product/tanzanite/ -maxdepth 3 \( -name "*.img" -o -name "*.zip" \) -exec cp {} ${{ steps.pwd.outputs.workspace-folder }}/artifacts/ \;
+        find out/target/product/tanzanite/ -type f \( -name "*.img" -o -name "*.zip" \) -exec cp {} ${{ steps.pwd.outputs.workspace-folder }}/artifacts/ \;
         echo "=== Artifacts Found ==="
         ls -la ${{ steps.pwd.outputs.workspace-folder }}/artifacts/
 
