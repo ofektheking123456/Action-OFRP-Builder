@@ -34,14 +34,14 @@ jobs:
           cd fox
           git clone https://gitlab.com/OrangeFox/sync.git
           cd sync
-          ./orangefox_sync.sh --branch fox-12.1 --path ~/foxdata
+          ./orangefox_sync.sh --branch 12.1 --path $HOME/foxdata
 
       - name: Integrate Device Tree & Build Recovery
         run: |
-          mkdir -p ~/foxdata/device/xiaomi/tanzanite
-          cp -r device/xiaomi/tanzanite/. ~/foxdata/device/xiaomi/tanzanite/
+          mkdir -p $HOME/foxdata/device/xiaomi/tanzanite
+          cp -r device/xiaomi/tanzanite/. $HOME/foxdata/device/xiaomi/tanzanite/
           
-          cd ~/foxdata
+          cd $HOME/foxdata
           source build/envsetup.sh
           
           lunch twrp_tanzanite-eng 2>/dev/null || lunch omni_tanzanite-eng 2>/dev/null || lunch fox_tanzanite-eng
@@ -51,7 +51,7 @@ jobs:
       - name: Package Output Artifacts
         run: |
           mkdir -p output/
-          find ~/foxdata/out/target/product/ -maxdepth 3 -type f \( -name "OrangeFox*.zip" -o -name "recovery.img" \) -exec cp {} output/ \;
+          find $HOME/foxdata/out/target/product/ -maxdepth 3 -type f \( -name "OrangeFox*.zip" -o -name "recovery.img" \) -exec cp {} output/ \;
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
