@@ -10,7 +10,7 @@ on:
       DEVICE_TREE_URL:
         description: 'Device Tree Repository URL'
         required: true
-        default: 'https://github.com/ofektheking123456/device_xiaomi_tanzanite'
+        default: 'https://github.com/Mayuri-Chan/recovery_device_xiaomi_tanzanite'
       DEVICE_TREE_BRANCH:
         description: 'Device Tree Branch (Leave empty for default branch)'
         required: false
@@ -26,7 +26,7 @@ on:
       MAKEFILE_NAME:
         description: 'Target Makefile Name (tw_tanzanite or omni_tanzanite)'
         required: true
-        default: 'tw_tanzanite'
+        default: 'twrp_tanzanite'
 
 jobs:
   build:
@@ -133,17 +133,15 @@ jobs:
     - name: Prepare Build Artifacts
       run: |
         mkdir -p output/
-        cd workspace/out/target/product/${{ github.event.inputs.DEVICE_NAME }}
         
-        # Copy recovery images and zip files
-        find . -type f \( -name "OrangeFox*.zip" -o -name "recovery.img" -o -name "boot.img" -o -name "vendor_boot.img" \) -exec cp {} ${{ github.workspace }}/output/ \;
+        # Search workspace/out and workspace/FoxFiles for build outputs
+        find workspace/out/target/product/ -type f \( -name "OrangeFox*.zip" -o -name "recovery.img" -o -name "boot.img" \) -exec cp {} output/ \; 2>/dev/null || true
+        find workspace/FoxFiles/ -type f -exec cp {} output/ \; 2>/dev/null || true
         
-        # Create tar file containing the recovery.img
-        cd ${{ github.workspace }}/output/
-        if [ -f "recovery.img" ]; then
-          tar -cvf OrangeFox-${{ github.event.inputs.DEVICE_NAME }}-fastboot.tar recovery.img
-        fi
-        
+        # Verify if any files were copied
+        echo "=== Files ready for release ==="
+        ls -la output/
+
     - name: Upload Artifacts to Release
       uses: softprops/action-gh-release@v2
       with:
