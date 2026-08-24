@@ -30,7 +30,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Check Out
       uses: actions/checkout@v4
@@ -73,7 +73,7 @@ jobs:
         export LC_ALL="C"
         export TW_DEFAULT_LANGUAGE="en"
         
-        # Display & Brightness limits
+        # Display & Brightness settings
         export TW_THEME="portrait_hdpi"
         export TARGET_SCREEN_WIDTH=1080
         export TARGET_SCREEN_HEIGHT=2400
@@ -91,8 +91,7 @@ jobs:
         
         make clean
         
-        # Use OrangeFox build wrapper script if present, fallback to full target
-        if [ -f vendor/fox/fox_build.sh ]; command; then
+        if [ -f vendor/fox/fox_build.sh ]; then
           bash vendor/fox/fox_build.sh tanzanite
         else
           mka adbd recoveryimage bootimage vendor_bootimage -j$(nproc --all)
@@ -103,7 +102,6 @@ jobs:
       run: |
         mkdir -p ${{ steps.pwd.outputs.workspace-folder }}/artifacts/
         
-        # Copy generated recovery images, vendor_boot images, and OrangeFox ZIP archives
         find out/target/product/tanzanite/ -maxdepth 3 \( -name "*.img" -o -name "OrangeFox*.zip" -o -name "Fox*.zip" \) -not -path "*/obj/*" -exec cp {} ${{ steps.pwd.outputs.workspace-folder }}/artifacts/ \;
         
         echo "=== Artifacts Found ==="
