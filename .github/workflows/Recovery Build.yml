@@ -71,7 +71,7 @@ jobs:
     - name: Clone device tree
       run: |
         cd fox_${{ github.event.inputs.MANIFEST_BRANCH }}
-        git clone https://github.com/Tanzanite-Prjkt/android_device_xiaomi_tanzanite.git -b fox_12.1 device/xiaomi/tanzanite
+        git clone https://github.com/ofektheking123456/device_xiaomi_tanzanite -b main device/xiaomi/tanzanite
         
     - name: Set up ccache
       uses: actions/cache@v4
