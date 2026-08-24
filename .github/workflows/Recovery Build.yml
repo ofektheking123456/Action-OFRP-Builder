@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
 
@@ -22,7 +22,7 @@ jobs:
       - name: Set up Build Environment
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git gnupg gperf lib32readline-dev lib32z1-dev liblz4-tool libncurses6 libncurses-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev python3
+          sudo apt-get install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git gnupg gperf lib32ncurses5-dev lib32readline-dev lib32z1-dev liblz4-tool libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev python3
           mkdir -p ~/.bin
           curl https://storage.googleapis.com/git-repo-downloads/repo > ~/.bin/repo
           chmod a+rx ~/.bin/repo
@@ -38,17 +38,14 @@ jobs:
 
       - name: Integrate Device Tree & Build Recovery
         run: |
-          # Copy cloned device tree into OrangeFox source tree
           mkdir -p ~/foxdata/device/xiaomi/tanzanite
           cp -r device/xiaomi/tanzanite/* ~/foxdata/device/xiaomi/tanzanite/
           
           cd ~/foxdata
           source build/envsetup.sh
           
-          # Target detection for OrangeFox
           lunch twrp_tanzanite-eng 2>/dev/null || lunch omni_tanzanite-eng 2>/dev/null || lunch fox_tanzanite-eng
           
-          # Build OrangeFox Recovery
           mka recoveryimage -j$(nproc --all)
 
       - name: Package Output Artifacts
