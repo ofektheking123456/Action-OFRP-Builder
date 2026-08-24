@@ -38,10 +38,21 @@ jobs:
 
       - name: Integrate Device Tree & Build Recovery
         run: |
-          mkdir -p $HOME/foxdata/device/xiaomi/tanzanite
-          cp -r device/xiaomi/tanzanite/. $HOME/foxdata/device/xiaomi/tanzanite/
+          # Copy device tree into synced source
+          mkdir -p $HOME/foxdata/fox_12.1/device/xiaomi/tanzanite $HOME/foxdata/device/xiaomi/tanzanite
+          cp -r device/xiaomi/tanzanite/* $HOME/foxdata/fox_12.1/device/xiaomi/tanzanite/ 2>/dev/null || cp -r device/xiaomi/tanzanite/* $HOME/foxdata/device/xiaomi/tanzanite/
           
-          cd $HOME/foxdata
+          # Find correct build root directory
+          if [ -d "$HOME/foxdata/fox_12.1" ]; then
+            cd $HOME/foxdata/fox_12.1
+          else
+            cd $HOME/foxdata
+          fi
+
+          export ALLOW_MISSING_DEPENDENCIES=true
+          export FOX_BUILD_DEVICE=tanzanite
+          export LC_ALL="C"
+          
           source build/envsetup.sh
           
           lunch twrp_tanzanite-eng 2>/dev/null || lunch omni_tanzanite-eng 2>/dev/null || lunch fox_tanzanite-eng
@@ -51,7 +62,7 @@ jobs:
       - name: Package Output Artifacts
         run: |
           mkdir -p output/
-          find $HOME/foxdata/out/target/product/ -maxdepth 3 -type f \( -name "OrangeFox*.zip" -o -name "recovery.img" \) -exec cp {} output/ \;
+          find $HOME/foxdata/ -maxdepth 4 -type f \( -name "OrangeFox*.zip" -o -name "recovery.img" \) -exec cp {} output/ \;
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
