@@ -94,6 +94,7 @@ jobs:
       with:
         swap-size-gb: 12
 
+    
     - name: Building recovery
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
       run: |
@@ -102,10 +103,12 @@ jobs:
         export LC_ALL="C"
         export TW_DEFAULT_LANGUAGE="en"
         
-        # Screen resolution and theme variables for tanzanite
+        # Screen resolution and brightness settings
         export TW_THEME="portrait_hdpi"
         export TARGET_SCREEN_WIDTH=1080
         export TARGET_SCREEN_HEIGHT=2400
+        export TW_MAX_BRIGHTNESS=2047
+        export TW_DEFAULT_BRIGHTNESS=1200
         
         set +e
         source build/envsetup.sh
