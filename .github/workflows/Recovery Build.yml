@@ -1,4 +1,4 @@
-name: Build TWRP Recovery
+name: Build OrangeFox Recovery
 
 on:
   workflow_dispatch:
@@ -28,38 +28,40 @@ jobs:
           chmod a+rx ~/.bin/repo
           echo "$HOME/.bin" >> $GITHUB_PATH
 
-      - name: Initialize Repo and Sync
+      - name: Initialize OrangeFox Sync
         run: |
-          mkdir -p twrp
-          cd twrp
-          repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1 --depth=1
-          repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
+          mkdir -p fox
+          cd fox
+          git clone https://gitlab.com/OrangeFox/sync.git
+          cd sync
+          ./orangefox_sync.sh --branch fox-12.1 --path ~/foxdata
 
-      - name: Integrate Device Tree & Build target
+      - name: Integrate Device Tree & Build Recovery
         run: |
-          # Move checkout to build tree
-          mkdir -p twrp/device/xiaomi/tanzanite
-          cp -r device/xiaomi/tanzanite/* twrp/device/xiaomi/tanzanite/
+          # Copy cloned device tree into OrangeFox source tree
+          mkdir -p ~/foxdata/device/xiaomi/tanzanite
+          cp -r device/xiaomi/tanzanite/* ~/foxdata/device/xiaomi/tanzanite/
           
-          cd twrp
+          cd ~/foxdata
           source build/envsetup.sh
           
-          # Fallback target resolution if AndroidProducts.mk / Makefile isn't strictly named twrp_tanzanite
-          lunch twrp_tanzanite-eng 2>/dev/null || lunch omni_tanzanite-eng 2>/dev/null || lunch twrp_tanzanite-userdebug
+          # Target detection for OrangeFox
+          lunch twrp_tanzanite-eng 2>/dev/null || lunch omni_tanzanite-eng 2>/dev/null || lunch fox_tanzanite-eng
           
+          # Build OrangeFox Recovery
           mka recoveryimage -j$(nproc --all)
 
-      - name: Package Output
+      - name: Package Output Artifacts
         run: |
           mkdir -p output/
-          find twrp/out/target/product/ -maxdepth 2 -name "*.img" -exec cp {} output/ \;
+          find ~/foxdata/out/target/product/ -maxdepth 3 -type f \( -name "OrangeFox*.zip" -o -name "recovery.img" \) -exec cp {} output/ \;
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: output/*
-          tag_name: build-${{ github.run_id }}
-          name: TWRP Recovery Build ${{ github.run_id }}
+          tag_name: orangefox-${{ github.run_id }}
+          name: OrangeFox Recovery Build ${{ github.run_id }}
           draft: false
           prerelease: false
         env:
