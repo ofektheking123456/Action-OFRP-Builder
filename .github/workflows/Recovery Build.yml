@@ -117,18 +117,24 @@ jobs:
         set -e
         
         make clean
-        # Build recoveryimage (and fallback to bootimage if vendor_boot is used)
-        mka adbd recoveryimage -j$(nproc --all) || mka adbd bootimage -j$(nproc --all)
-        
+        # Try standard targets sequentially
+        mka adbd recoveryimage -j$(nproc --all) || mka adbd bootimage -j$(nproc --all) || mka adbd vendor_bootimage -j$(nproc --all)
+
     - name: Prepare build artifacts
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
       run: |
         mkdir -p ${{ steps.pwd.outputs.workspace-folder }}/artifacts/
         
-        # Search the entire product directory, excluding intermediate/obj folders
-        find out/target/product/ -type f \( -name "*.img" -o -name "*.zip" \) -not -path "*/obj/*" -not -path "*/symbols/*" -exec cp {} ${{ steps.pwd.outputs.workspace-folder }}/artifacts/ \;
+        echo "=== Printing directory structure inside out/ ==="
+        find out/ -maxdepth 4 -type d
         
-        echo "=== Artifacts Found ==="
+        echo "=== Searching for any generated .img or .zip files ==="
+        find out/ -type f \( -name "*.img" -o -name "*.zip" \) -not -path "*/obj/*" -not -path "*/host/*" -not -path "*/symbols/*"
+        
+        # Copy output files
+        find out/ -type f \( -name "OrangeFox*.zip" -o -name "recovery.img" -o -name "boot.img" -o -name "vendor_boot.img" \) -not -path "*/obj/*" -exec cp {} ${{ steps.pwd.outputs.workspace-folder }}/artifacts/ \;
+        
+        echo "=== Artifacts Copied ==="
         ls -la ${{ steps.pwd.outputs.workspace-folder }}/artifacts/
 
     - name: Upload to Release
