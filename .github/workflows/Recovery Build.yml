@@ -124,10 +124,12 @@ jobs:
         lunch ${{ github.event.inputs.MAKEFILE_NAME }}-eng || lunch ${{ github.event.inputs.MAKEFILE_NAME }}-userdebug
         set -e
         
+        # Force compilation of recovery target
+        mka recoveryimage -j$(nproc --all) || mka bootimage -j$(nproc --all)
+        
+        # Run OrangeFox post-processing script if present
         if [ -f vendor/fox/fox_build.sh ]; then
           bash vendor/fox/fox_build.sh ${{ github.event.inputs.DEVICE_NAME }}
-        else
-          mka recoveryimage -j$(nproc --all)
         fi
 
     - name: Prepare Build Artifacts
