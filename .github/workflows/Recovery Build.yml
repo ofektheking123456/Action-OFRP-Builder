@@ -39,7 +39,7 @@ jobs:
       - name: Integrate Device Tree & Build Recovery
         run: |
           mkdir -p ~/foxdata/device/xiaomi/tanzanite
-          cp -r device/xiaomi/tanzanite/* ~/foxdata/device/xiaomi/tanzanite/
+          cp -r device/xiaomi/tanzanite/. ~/foxdata/device/xiaomi/tanzanite/
           
           cd ~/foxdata
           source build/envsetup.sh
