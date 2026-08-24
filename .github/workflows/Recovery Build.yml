@@ -104,7 +104,7 @@ jobs:
         export LC_ALL="C"
         export TW_DEFAULT_LANGUAGE="en"
         
-        # Screen resolution and brightness settings
+        # Screen resolution & brightness settings
         export TW_THEME="portrait_hdpi"
         export TARGET_SCREEN_WIDTH=1080
         export TARGET_SCREEN_HEIGHT=2400
@@ -113,28 +113,28 @@ jobs:
         
         set +e
         source build/envsetup.sh
-        lunch twrp_tanzanite-eng
+        
+        # Source OrangeFox build environment vars if available
+        [ -f vendor/fox/vars/fox_env.sh ] && source vendor/fox/vars/fox_env.sh
+        
+        # Lunch target
+        lunch twrp_tanzanite-eng || lunch fox_tanzanite-eng
         set -e
         
         make clean
-        # Try standard targets sequentially
-        mka adbd recoveryimage -j$(nproc --all) || mka adbd bootimage -j$(nproc --all) || mka adbd vendor_bootimage -j$(nproc --all)
+        
+        # Build OrangeFox recovery targets
+        mka recoveryimage -j$(nproc --all) || mka bootimage -j$(nproc --all) || mka vendor_bootimage -j$(nproc --all)
 
     - name: Prepare build artifacts
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
       run: |
         mkdir -p ${{ steps.pwd.outputs.workspace-folder }}/artifacts/
         
-        echo "=== Printing directory structure inside out/ ==="
-        find out/ -maxdepth 4 -type d
+        # Copy image files or zip packages generated in product dir
+        find out/target/product/tanzanite/ -maxdepth 2 -type f \( -name "*.img" -o -name "*.zip" \) -exec cp {} ${{ steps.pwd.outputs.workspace-folder }}/artifacts/ \;
         
-        echo "=== Searching for any generated .img or .zip files ==="
-        find out/ -type f \( -name "*.img" -o -name "*.zip" \) -not -path "*/obj/*" -not -path "*/host/*" -not -path "*/symbols/*"
-        
-        # Copy output files
-        find out/ -type f \( -name "OrangeFox*.zip" -o -name "recovery.img" -o -name "boot.img" -o -name "vendor_boot.img" \) -not -path "*/obj/*" -exec cp {} ${{ steps.pwd.outputs.workspace-folder }}/artifacts/ \;
-        
-        echo "=== Artifacts Copied ==="
+        echo "=== Artifacts Found ==="
         ls -la ${{ steps.pwd.outputs.workspace-folder }}/artifacts/
 
     - name: Upload to Release
