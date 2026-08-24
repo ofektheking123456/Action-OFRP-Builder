@@ -14,7 +14,7 @@ on:
       DEVICE_TREE_BRANCH:
         description: 'Device Tree Branch'
         required: true
-        default: 'fox'
+        default: 'main'
       DEVICE_PATH:
         description: 'Device Path'
         required: true
@@ -71,8 +71,8 @@ jobs:
     - name: Clone device tree
       run: |
         cd fox_${{ github.event.inputs.MANIFEST_BRANCH }}
-        git clone ${{ github.event.inputs.DEVICE_TREE_URL }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ${{ github.event.inputs.DEVICE_PATH }}
-
+        git clone https://github.com/Tanzanite-Prjkt/android_device_xiaomi_tanzanite.git -b fox_12.1 device/xiaomi/tanzanite
+        
     - name: Set up ccache
       uses: actions/cache@v4
       with:
