@@ -99,6 +99,7 @@ jobs:
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
       run: |
         export ALLOW_MISSING_DEPENDENCIES=true
+        export DISABLE_ARTIFACT_PATH_REQUIREMENTS=true
         export FOX_BUILD_TYPE="Unofficial"
         export LC_ALL="C"
         export TW_DEFAULT_LANGUAGE="en"
@@ -112,7 +113,7 @@ jobs:
         
         set +e
         source build/envsetup.sh
-        lunch ${{ github.event.inputs.MAKEFILE_NAME }}-eng
+        lunch twrp_tanzanite-eng
         set -e
         
         make clean
