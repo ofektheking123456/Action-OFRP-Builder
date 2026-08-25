@@ -9,6 +9,9 @@ env:
   DEVICE_NAME: 'tanzanite'
   MAKEFILE_NAME: 'fox_tanzanite'
   BUILD_TARGET: 'recovery'
+  TW_THEME: 'portrait_hdpi'
+  TARGET_SCREEN_WIDTH: '1080'
+  TARGET_SCREEN_HEIGHT: '2400'
 
 jobs:
   build:
@@ -45,7 +48,6 @@ jobs:
 
       - name: Setup Device Tree & Build
         run: |
-          # OrangeFox 12.1 creates fox_12.1 inside the path argument
           if [ -d "$HOME/foxdata/fox_${{ env.MANIFEST_BRANCH }}" ]; then
             FOX_ROOT="$HOME/foxdata/fox_${{ env.MANIFEST_BRANCH }}"
           else
@@ -58,12 +60,15 @@ jobs:
           TARGET_DIR="$FOX_ROOT/${{ env.DEVICE_PATH }}"
           mkdir -p "$TARGET_DIR"
 
-          # Copy ONLY device tree files quietly
+          # Copy device tree files quietly
           rsync -aq --exclude='.git' --exclude='.github' --exclude='foxdata' --exclude='sync_tool' "$GITHUB_WORKSPACE/" "$TARGET_DIR/"
 
           cd "$FOX_ROOT"
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE="${{ env.DEVICE_NAME }}"
+          export TW_THEME="${{ env.TW_THEME }}"
+          export TARGET_SCREEN_WIDTH="${{ env.TARGET_SCREEN_WIDTH }}"
+          export TARGET_SCREEN_HEIGHT="${{ env.TARGET_SCREEN_HEIGHT }}"
           export LC_ALL="C"
 
           # Source build environment & lunch target
