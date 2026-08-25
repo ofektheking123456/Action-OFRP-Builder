@@ -1,0 +1,12 @@
+# Architecture
+TARGET_ARCH := arm64
+TARGET_ARCH_VARIANT := armv8-a
+TARGET_CPU_ABI := arm64-v8a
+TARGET_CPU_ABI2 :=
+TARGET_CPU_VARIANT := generic
+
+# Recovery / Display
+TARGET_RECOVERY_GUI_HELPERS := true
+TW_THEME := portrait_hd
+RECOVERY_SDCARD_ON_DATA := true
+ALLOW_MISSING_DEPENDENCIES := true
