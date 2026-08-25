@@ -38,21 +38,19 @@ jobs:
 
       - name: Integrate Device Tree & Build Recovery
         run: |
-          # Detect the exact directory where build/envsetup.sh resides
-          ENVSETUP=$(find $HOME/foxdata -name "envsetup.sh" | head -n 1)
-
-          if [ -z "$ENVSETUP" ]; then
-            echo "Error: build/envsetup.sh was not found!"
-            exit 1
+          # Explicitly target the root directory where orangefox_sync.sh syncs the source
+          if [ -f "$HOME/foxdata/fox_12.1/build/envsetup.sh" ]; then
+            FOX_ROOT="$HOME/foxdata/fox_12.1"
+          elif [ -f "$HOME/foxdata/build/envsetup.sh" ]; then
+            FOX_ROOT="$HOME/foxdata"
+          else
+            FOX_ROOT=$(dirname $(dirname $(find $HOME/foxdata -maxdepth 4 -name "envsetup.sh" | grep "/build/envsetup.sh" | head -n 1)))
           fi
 
-          FOX_ROOT=$(dirname $(dirname "$ENVSETUP"))
           echo "Targeting Fox root: $FOX_ROOT"
 
-          # Create device tree directory in the synced Android source
+          # Copy device tree directly into the source structure
           mkdir -p "$FOX_ROOT/device/xiaomi/tanzanite"
-
-          # Copy checked out files into the build tree
           cp -r $GITHUB_WORKSPACE/device/xiaomi/tanzanite/* "$FOX_ROOT/device/xiaomi/tanzanite/"
 
           cd "$FOX_ROOT"
@@ -60,13 +58,13 @@ jobs:
           export FOX_BUILD_DEVICE=tanzanite
           export LC_ALL="C"
 
-          # Load build environment
+          # Source environment script safely
           source build/envsetup.sh
 
-          # Lunch target selection
-          lunch twrp_tanzanite-eng || lunch omni_tanzanite-eng || lunch fox_tanzanite-eng || lunch twrp_tanzanite-userdebug
+          # Select lunch target
+          lunch twrp_tanzanite-eng 2>/dev/null || lunch omni_tanzanite-eng 2>/dev/null || lunch fox_tanzanite-eng 2>/dev/null || lunch twrp_tanzanite-userdebug
 
-          # Start compilation
+          # Build recovery
           mka recoveryimage -j$(nproc --all) || make recoveryimage -j$(nproc --all)
 
       - name: Package Output Artifacts
