@@ -1,81 +1,30 @@
-name: Build OrangeFox Recovery
+name: OrangeFox - Build
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-      - master
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    name: Build OrangeFox Recovery
+    runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
-      - name: Checkout Device Tree
+      - name: Checkout Workflow
         uses: actions/checkout@v4
+
+      - name: Build OrangeFox Recovery
+        uses: UWU-TEAM/UWU-OrangeFox-Builder@v1.0.0
         with:
-          path: device_tree
-
-      - name: Set up Build Environment
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git gnupg gperf lib32ncurses5-dev lib32readline-dev lib32z1-dev liblz4-tool libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev python3
-          mkdir -p ~/.bin
-          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/.bin/repo
-          chmod a+rx ~/.bin/repo
-          echo "$HOME/.bin" >> $GITHUB_PATH
-
-      - name: Sync OrangeFox Source
-        run: |
-          mkdir -p $HOME/fox_src
-          git clone https://gitlab.com/OrangeFox/sync.git $HOME/fox_sync
-          cd $HOME/fox_sync
-          ./orangefox_sync.sh --branch 12.1 --path $HOME/fox_src
-
-      - name: Integrate Device Tree and Build
-        run: |
-          # 1. Determine exact target directory created by sync
-          if [ -d "$HOME/fox_src/fox_12.1" ]; return 0 2>/dev/null || [ -d "$HOME/fox_src/fox_12.1" ]; then
-            FOX_ROOT="$HOME/fox_src/fox_12.1"
-          else
-            FOX_ROOT="$HOME/fox_src"
-          fi
-
-          echo "FOX_ROOT is set to: $FOX_ROOT"
-
-          # 2. Place device tree into the synced source tree
-          mkdir -p "$FOX_ROOT/device/xiaomi/tanzanite"
-          cp -r $GITHUB_WORKSPACE/device_tree/* "$FOX_ROOT/device/xiaomi/tanzanite/"
-
-          # 3. Build setup
-          cd "$FOX_ROOT"
-          export ALLOW_MISSING_DEPENDENCIES=true
-          export FOX_BUILD_DEVICE=tanzanite
-          export LC_ALL="C"
-
-          # 4. Source environment and lunch
-          source build/envsetup.sh
-          lunch twrp_tanzanite-eng || lunch omni_tanzanite-eng || lunch fox_tanzanite-eng || lunch twrp_tanzanite-userdebug
-
-          # 5. Compile recovery image
-          mka recoveryimage -j$(nproc --all)
-
-      - name: Package Output Artifacts
-        run: |
-          mkdir -p output/
-          find $HOME/fox_src/ -maxdepth 6 -type f \( -name "OrangeFox*.zip" -o -name "recovery.img" \) -exec cp {} output/ \;
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: output/*
-          tag_name: orangefox-${{ github.run_id }}
-          name: OrangeFox Recovery Build ${{ github.run_id }}
-          draft: false
-          prerelease: false
+          USER_NAME: 'Syntax'
+          USER_EMAIL: 'builder@github.com'
+          DEVICE_TREE: 'https://github.com/ofektheking123456/Redmi-note-14-4g-orangefox'
+          DEVICE_TREE_BRANCH: 'main'
+          DEVICE_PATH: 'device/xiaomi/tanzanite'
+          DEVICE_NAME: 'tanzanite'
+          BUILD_TARGET: 'recovery'
+          GH_RELEASE: 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
