@@ -13,3 +13,7 @@ TARGET_2ND_CPU_VARIANT := generic
 
 # Fix 32-bit app support error on 64-bit builds
 TARGET_SUPPORTS_64_BIT_APPS := true
+
+# Prebuilt Kernel Config
+BOARD_CUSTOM_BOOTIMG_MK := build/make/tasks/bootimg.mk
+TARGET_NO_KERNEL := false
