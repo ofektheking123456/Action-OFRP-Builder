@@ -17,7 +17,7 @@ jobs:
       - name: Checkout Device Tree
         uses: actions/checkout@v4
         with:
-          path: device/xiaomi/tanzanite
+          path: device_tree
 
       - name: Set up Build Environment
         run: |
@@ -28,49 +28,45 @@ jobs:
           chmod a+rx ~/.bin/repo
           echo "$HOME/.bin" >> $GITHUB_PATH
 
-      - name: Initialize OrangeFox Sync
+      - name: Sync OrangeFox Source
         run: |
-          mkdir -p fox
-          cd fox
-          git clone https://gitlab.com/OrangeFox/sync.git
-          cd sync
-          ./orangefox_sync.sh --branch 12.1 --path $HOME/foxdata
+          mkdir -p $HOME/fox_src
+          git clone https://gitlab.com/OrangeFox/sync.git $HOME/fox_sync
+          cd $HOME/fox_sync
+          ./orangefox_sync.sh --branch 12.1 --path $HOME/fox_src
 
-      - name: Integrate Device Tree & Build Recovery
+      - name: Integrate Device Tree and Build
         run: |
-          # Explicitly target the root directory where orangefox_sync.sh syncs the source
-          if [ -f "$HOME/foxdata/fox_12.1/build/envsetup.sh" ]; then
-            FOX_ROOT="$HOME/foxdata/fox_12.1"
-          elif [ -f "$HOME/foxdata/build/envsetup.sh" ]; then
-            FOX_ROOT="$HOME/foxdata"
+          # 1. Determine exact target directory created by sync
+          if [ -d "$HOME/fox_src/fox_12.1" ]; return 0 2>/dev/null || [ -d "$HOME/fox_src/fox_12.1" ]; then
+            FOX_ROOT="$HOME/fox_src/fox_12.1"
           else
-            FOX_ROOT=$(dirname $(dirname $(find $HOME/foxdata -maxdepth 4 -name "envsetup.sh" | grep "/build/envsetup.sh" | head -n 1)))
+            FOX_ROOT="$HOME/fox_src"
           fi
 
-          echo "Targeting Fox root: $FOX_ROOT"
+          echo "FOX_ROOT is set to: $FOX_ROOT"
 
-          # Copy device tree directly into the source structure
+          # 2. Place device tree into the synced source tree
           mkdir -p "$FOX_ROOT/device/xiaomi/tanzanite"
-          cp -r $GITHUB_WORKSPACE/device/xiaomi/tanzanite/* "$FOX_ROOT/device/xiaomi/tanzanite/"
+          cp -r $GITHUB_WORKSPACE/device_tree/* "$FOX_ROOT/device/xiaomi/tanzanite/"
 
+          # 3. Build setup
           cd "$FOX_ROOT"
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE=tanzanite
           export LC_ALL="C"
 
-          # Source environment script safely
+          # 4. Source environment and lunch
           source build/envsetup.sh
+          lunch twrp_tanzanite-eng || lunch omni_tanzanite-eng || lunch fox_tanzanite-eng || lunch twrp_tanzanite-userdebug
 
-          # Select lunch target
-          lunch twrp_tanzanite-eng 2>/dev/null || lunch omni_tanzanite-eng 2>/dev/null || lunch fox_tanzanite-eng 2>/dev/null || lunch twrp_tanzanite-userdebug
-
-          # Build recovery
-          mka recoveryimage -j$(nproc --all) || make recoveryimage -j$(nproc --all)
+          # 5. Compile recovery image
+          mka recoveryimage -j$(nproc --all)
 
       - name: Package Output Artifacts
         run: |
           mkdir -p output/
-          find $HOME/foxdata/ -maxdepth 6 -type f \( -name "OrangeFox*.zip" -o -name "recovery.img" \) -exec cp {} output/ \;
+          find $HOME/fox_src/ -maxdepth 6 -type f \( -name "OrangeFox*.zip" -o -name "recovery.img" \) -exec cp {} output/ \;
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
