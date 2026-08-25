@@ -58,7 +58,6 @@ jobs:
 
           echo "OrangeFox source root set to: $FOX_ROOT"
 
-          # Copy workspace device tree into the build tree
           TARGET_DIR="$FOX_ROOT/${{ env.DEVICE_PATH }}"
           mkdir -p "$TARGET_DIR"
           rsync -aq --exclude='.git' --exclude='.github' --exclude='foxdata' --exclude='sync_tool' "$GITHUB_WORKSPACE/" "$TARGET_DIR/"
@@ -73,11 +72,19 @@ jobs:
           export TW_DEFAULT_BRIGHTNESS="${{ env.TW_DEFAULT_BRIGHTNESS }}"
           export LC_ALL="C"
 
-          # Source build environment & lunch explicit product target
+          # Temporarily disable error exit to handle lunch evaluation safely
+          set +e
           source build/envsetup.sh
-          lunch ${{ env.MAKEFILE_NAME }}-eng || lunch ${{ env.MAKEFILE_NAME }}-userdebug
+          lunch ${{ env.MAKEFILE_NAME }}-eng || lunch ${{ env.MAKEFILE_NAME }}-userdebug || lunch omni_${{ env.DEVICE_NAME }}-eng || lunch tw_${{ env.DEVICE_NAME }}-eng
+          LUNCH_STATUS=$?
+          set -e
 
-          # Compile recovery image
+          if [ $LUNCH_STATUS -ne 0 ]; then
+            echo "Failed to lunch product target."
+            exit 1
+          fi
+
+          # Start compilation
           mka ${{ env.BUILD_TARGET }}image -j2
 
       - name: Prepare Upload Artifacts
