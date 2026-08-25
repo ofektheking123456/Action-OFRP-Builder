@@ -38,23 +38,28 @@ jobs:
 
       - name: Integrate Device Tree & Build Recovery
         run: |
-          # Find the actual root directory containing repo manifest
-          FOX_ROOT=$(dirname $(find $HOME/foxdata -name "build" -type d -maxdepth 2 | head -n 1))
-          echo "Found Fox root at: $FOX_ROOT"
-          
+          # Set explicit root directory path created by orangefox_sync.sh
+          if [ -d "$HOME/foxdata/fox_12.1" ]; then
+            FOX_ROOT="$HOME/foxdata/fox_12.1"
+          else
+            FOX_ROOT="$HOME/foxdata"
+          fi
+
+          echo "Using Fox root at: $FOX_ROOT"
+
           # Copy device tree into synced source
           mkdir -p $FOX_ROOT/device/xiaomi/tanzanite
           cp -r device/xiaomi/tanzanite/* $FOX_ROOT/device/xiaomi/tanzanite/
-          
+
           cd $FOX_ROOT
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE=tanzanite
           export LC_ALL="C"
-          
+
           source build/envsetup.sh
-          
+
           lunch twrp_tanzanite-eng 2>/dev/null || lunch omni_tanzanite-eng 2>/dev/null || lunch fox_tanzanite-eng
-          
+
           mka recoveryimage -j$(nproc --all)
 
       - name: Package Output Artifacts
