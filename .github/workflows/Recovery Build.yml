@@ -78,11 +78,11 @@ jobs:
           # Source build environment & lunch target
           set +e
           source build/envsetup.sh
-          lunch ${{ env.MAKEFILE_NAME }}-eng || lunch ${{ env.MAKEFILE_NAME }}-userdebug || lunch omni_${{ env.DEVICE_NAME }}-eng
+          lunch ${{ env.MAKEFILE_NAME }}-eng || lunch ${{ env.MAKEFILE_NAME }}-userdebug || lunch tw_${{ env.DEVICE_NAME }}-eng
           set -e
 
-          # Start compilation
-          mka ${{ env.BUILD_TARGET }}image -j$(nproc --all)
+          # Start compilation using 2 threads to prevent out-of-memory errors on GitHub runners
+          mka ${{ env.BUILD_TARGET }}image -j2
 
       - name: Prepare Upload Artifacts
         run: |
