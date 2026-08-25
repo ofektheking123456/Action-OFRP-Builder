@@ -4,10 +4,7 @@ on:
   workflow_dispatch:
 
 env:
-  MANIFEST_URL: 'https://gitlab.com/OrangeFox/manifest.git'
   MANIFEST_BRANCH: '12.1'
-  DEVICE_TREE_URL: 'https://github.com/ofektheking123456/Redmi-note-14-4g-orangefox'
-  DEVICE_TREE_BRANCH: 'main'
   DEVICE_PATH: 'device/xiaomi/tanzanite'
   DEVICE_NAME: 'tanzanite'
   MAKEFILE_NAME: 'fox_tanzanite'
@@ -20,6 +17,9 @@ jobs:
       contents: write
 
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
       - name: Free Disk Space & Set up Environment
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/share/powershell /usr/share/swift /usr/local/graalvm /var/lib/docker
@@ -29,9 +29,6 @@ jobs:
           curl https://storage.googleapis.com/git-repo-downloads/repo > ~/.bin/repo
           chmod a+rx ~/.bin/repo
           echo "$HOME/.bin" >> $GITHUB_PATH
-
-      - name: Checkout Repository
-        uses: actions/checkout@v4
 
       - name: Sync OrangeFox Source
         run: |
@@ -43,25 +40,32 @@ jobs:
 
       - name: Setup Device Tree & Build
         run: |
-          FOX_ROOT="$HOME/foxdata/fox_${{ env.MANIFEST_BRANCH }}"
-          if [ ! -d "$FOX_ROOT" ]; then FOX_ROOT="$HOME/foxdata"; fi
+          # Find source directory dynamically
+          if [ -d "$HOME/foxdata/fox_${{ env.MANIFEST_BRANCH }}" ]; then
+            FOX_ROOT="$HOME/foxdata/fox_${{ env.MANIFEST_BRANCH }}"
+          else
+            FOX_ROOT="$HOME/foxdata"
+          fi
 
-          # Copy root makefiles directly into expected device path
-          mkdir -p "$FOX_ROOT/${{ env.DEVICE_PATH }}"
-          cp -r $GITHUB_WORKSPACE/* "$FOX_ROOT/${{ env.DEVICE_PATH }}/"
+          # Target device directory
+          TARGET_DIR="$FOX_ROOT/${{ env.DEVICE_PATH }}"
+          mkdir -p "$TARGET_DIR"
+
+          # Copy repository makefiles safely
+          rsync -av --exclude='.git' --exclude='.github' "$GITHUB_WORKSPACE/" "$TARGET_DIR/"
 
           cd "$FOX_ROOT"
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE="${{ env.DEVICE_NAME }}"
           export LC_ALL="C"
 
-          # Source build environment
+          # Load build env setup
           source build/envsetup.sh
 
           # Lunch OrangeFox target
           lunch ${{ env.MAKEFILE_NAME }}-eng || lunch ${{ env.MAKEFILE_NAME }}-userdebug
 
-          # Compile recovery image
+          # Start compilation
           mka ${{ env.BUILD_TARGET }}image -j$(nproc --all)
 
       - name: Prepare Upload Artifacts
