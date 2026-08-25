@@ -38,30 +38,34 @@ jobs:
 
       - name: Integrate Device Tree & Build Recovery
         run: |
-          # Robust root directory detection (looks specifically for top-level Android Makefile / .repo)
-          FOX_ROOT=$(find $HOME/foxdata -maxdepth 3 -name "Makefile" -o -name ".repo" | head -n 1 | xargs dirname)
+          # Locate the actual directory containing build/envsetup.sh
+          ENVSETUP_PATH=$(find $HOME/foxdata -name "envsetup.sh" | grep "/build/envsetup.sh" | head -n 1)
           
-          if [ -z "$FOX_ROOT" ]; then
-            FOX_ROOT="$HOME/foxdata"
+          if [ -z "$ENVSETUP_PATH" ]; then
+            echo "Error: build/envsetup.sh was not found. Sync may have failed."
+            exit 1
           fi
 
+          FOX_ROOT=$(dirname $(dirname "$ENVSETUP_PATH"))
           echo "Targeting Fox root: $FOX_ROOT"
 
-          # Sync device tree directly to top-level device folder
+          # Copy device tree files, excluding git and GitHub metadata
           mkdir -p "$FOX_ROOT/device/xiaomi/tanzanite"
-          rsync -av --exclude='.git' device/xiaomi/tanzanite/ "$FOX_ROOT/device/xiaomi/tanzanite/"
+          rsync -av --exclude='.git' --exclude='.github' device/xiaomi/tanzanite/ "$FOX_ROOT/device/xiaomi/tanzanite/"
 
           cd "$FOX_ROOT"
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE=tanzanite
           export LC_ALL="C"
 
-          # Source build script and trigger lunch
+          # Load environment
           source build/envsetup.sh
 
-          lunch twrp_tanzanite-eng 2>/dev/null || lunch omni_tanzanite-eng 2>/dev/null || lunch fox_tanzanite-eng 2>/dev/null || lunch twrp_tanzanite-userdebug
+          # Execute lunch target
+          lunch twrp_tanzanite-eng || lunch omni_tanzanite-eng || lunch fox_tanzanite-eng || lunch twrp_tanzanite-userdebug
 
-          mka recoveryimage -j$(nproc --all) || make recoveryimage -j$(nproc --all)
+          # Compile recovery image
+          mka recoveryimage -j$(nproc --all)
 
       - name: Package Output Artifacts
         run: |
