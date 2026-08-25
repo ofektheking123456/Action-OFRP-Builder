@@ -12,6 +12,8 @@ env:
   TW_THEME: 'portrait_hdpi'
   TARGET_SCREEN_WIDTH: '1080'
   TARGET_SCREEN_HEIGHT: '2400'
+  TW_MAX_BRIGHTNESS: '255'
+  TW_DEFAULT_BRIGHTNESS: '160'
 
 jobs:
   build:
@@ -69,6 +71,8 @@ jobs:
           export TW_THEME="${{ env.TW_THEME }}"
           export TARGET_SCREEN_WIDTH="${{ env.TARGET_SCREEN_WIDTH }}"
           export TARGET_SCREEN_HEIGHT="${{ env.TARGET_SCREEN_HEIGHT }}"
+          export TW_MAX_BRIGHTNESS="${{ env.TW_MAX_BRIGHTNESS }}"
+          export TW_DEFAULT_BRIGHTNESS="${{ env.TW_DEFAULT_BRIGHTNESS }}"
           export LC_ALL="C"
 
           # Source build environment & lunch target
