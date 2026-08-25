@@ -38,8 +38,8 @@ jobs:
 
       - name: Integrate Device Tree & Build Recovery
         run: |
-          # Locate actual source directory created by sync script
-          FOX_ROOT=$(dirname $(find $HOME/foxdata -name "envsetup.sh" -path "*/build/*" | head -n 1) | sed 's|/build||')
+          # Find the actual root directory containing repo manifest
+          FOX_ROOT=$(dirname $(find $HOME/foxdata -name "build" -type d -maxdepth 2 | head -n 1))
           echo "Found Fox root at: $FOX_ROOT"
           
           # Copy device tree into synced source
