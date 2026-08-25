@@ -32,30 +32,31 @@ jobs:
 
       - name: Sync OrangeFox Source
         run: |
-          mkdir -p $GITHUB_WORKSPACE/fox
-          cd $GITHUB_WORKSPACE/fox
-          git clone https://gitlab.com/OrangeFox/sync.git
-          cd sync
+          mkdir -p $HOME/foxdata
+          cd $HOME/foxdata
+          git clone https://gitlab.com/OrangeFox/sync.git sync_tool
+          cd sync_tool
           export FOX_VERSION="${{ env.MANIFEST_BRANCH }}"
-          ./orangefox_sync.sh --branch ${{ env.MANIFEST_BRANCH }} --path $GITHUB_WORKSPACE/foxdata
+          ./orangefox_sync.sh --branch ${{ env.MANIFEST_BRANCH }} --path $HOME/foxdata
 
       - name: Setup Device Tree & Build
         run: |
           # Locate source root directory containing build system
-          FOX_ROOT=$(find $GITHUB_WORKSPACE/foxdata -name "envsetup.sh" -exec dirname {} \; | head -n 1)
+          FOX_ROOT=$(find $HOME/foxdata -name "envsetup.sh" -exec dirname {} \; | head -n 1)
 
           if [ -z "$FOX_ROOT" ]; then
-            echo "Listing foxdata structure for debugging:"
-            ls -la $GITHUB_WORKSPACE/foxdata
+            echo "Error: Could not locate OrangeFox build source."
             exit 1
           fi
 
           echo "Found source root at: $FOX_ROOT"
 
-          # Copy device tree files
+          # Target device directory
           TARGET_DIR="$FOX_ROOT/${{ env.DEVICE_PATH }}"
           mkdir -p "$TARGET_DIR"
-          rsync -av --exclude='.git' --exclude='.github' "$GITHUB_WORKSPACE/" "$TARGET_DIR/"
+
+          # Copy ONLY device tree files quietly (excluding foxdata and build directories to avoid infinite loops)
+          rsync -aq --exclude='.git' --exclude='.github' --exclude='foxdata' --exclude='fox' "$GITHUB_WORKSPACE/" "$TARGET_DIR/"
 
           cd "$FOX_ROOT"
           export ALLOW_MISSING_DEPENDENCIES=true
@@ -66,13 +67,13 @@ jobs:
           source build/envsetup.sh
           lunch ${{ env.MAKEFILE_NAME }}-eng || lunch ${{ env.MAKEFILE_NAME }}-userdebug
 
-          # Start build
+          # Start compilation
           mka ${{ env.BUILD_TARGET }}image -j$(nproc --all)
 
       - name: Prepare Upload Artifacts
         run: |
           mkdir -p output/
-          find $GITHUB_WORKSPACE/foxdata/ -maxdepth 6 -type f \( -name "OrangeFox*.zip" -o -name "recovery.img" \) -exec cp {} output/ \;
+          find $HOME/foxdata/ -maxdepth 6 -type f \( -name "OrangeFox*.zip" -o -name "recovery.img" \) -exec cp {} output/ \;
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
