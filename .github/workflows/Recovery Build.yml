@@ -58,11 +58,9 @@ jobs:
 
           echo "OrangeFox source root set to: $FOX_ROOT"
 
-          # Target device directory
+          # Copy workspace device tree into the build tree
           TARGET_DIR="$FOX_ROOT/${{ env.DEVICE_PATH }}"
           mkdir -p "$TARGET_DIR"
-
-          # Copy device tree files quietly
           rsync -aq --exclude='.git' --exclude='.github' --exclude='foxdata' --exclude='sync_tool' "$GITHUB_WORKSPACE/" "$TARGET_DIR/"
 
           cd "$FOX_ROOT"
@@ -75,13 +73,11 @@ jobs:
           export TW_DEFAULT_BRIGHTNESS="${{ env.TW_DEFAULT_BRIGHTNESS }}"
           export LC_ALL="C"
 
-          # Source build environment & lunch target
-          set +e
+          # Source build environment & lunch explicit product target
           source build/envsetup.sh
-          lunch ${{ env.MAKEFILE_NAME }}-eng || lunch ${{ env.MAKEFILE_NAME }}-userdebug || lunch tw_${{ env.DEVICE_NAME }}-eng
-          set -e
+          lunch ${{ env.MAKEFILE_NAME }}-eng || lunch ${{ env.MAKEFILE_NAME }}-userdebug
 
-          # Start compilation using 2 threads to prevent out-of-memory errors on GitHub runners
+          # Compile recovery image
           mka ${{ env.BUILD_TARGET }}image -j2
 
       - name: Prepare Upload Artifacts
