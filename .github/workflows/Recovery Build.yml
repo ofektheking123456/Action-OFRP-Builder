@@ -38,20 +38,15 @@ jobs:
 
       - name: Integrate Device Tree & Build Recovery
         run: |
-          # Set explicit root directory path created by orangefox_sync.sh
-          if [ -d "$HOME/foxdata/fox_12.1" ]; then
-            FOX_ROOT="$HOME/foxdata/fox_12.1"
-          else
-            FOX_ROOT="$HOME/foxdata"
-          fi
+          # Find the directory where build/envsetup.sh exists
+          FOX_ROOT=$(dirname $(find $HOME/foxdata -name "envsetup.sh" | grep "build/envsetup.sh" | head -n 1) | sed 's|/build||')
+          echo "Targeting Fox root: $FOX_ROOT"
 
-          echo "Using Fox root at: $FOX_ROOT"
+          # Copy device tree safely
+          mkdir -p "$FOX_ROOT/device/xiaomi/tanzanite"
+          rsync -av --exclude='.git' device/xiaomi/tanzanite/ "$FOX_ROOT/device/xiaomi/tanzanite/"
 
-          # Copy device tree into synced source
-          mkdir -p $FOX_ROOT/device/xiaomi/tanzanite
-          cp -r device/xiaomi/tanzanite/* $FOX_ROOT/device/xiaomi/tanzanite/
-
-          cd $FOX_ROOT
+          cd "$FOX_ROOT"
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE=tanzanite
           export LC_ALL="C"
