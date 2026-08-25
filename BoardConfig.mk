@@ -15,5 +15,6 @@ TARGET_2ND_CPU_VARIANT := generic
 TARGET_SUPPORTS_64_BIT_APPS := true
 
 # Prebuilt Kernel Config
-BOARD_CUSTOM_BOOTIMG_MK := build/make/tasks/bootimg.mk
+BOARD_KERNEL_IMAGE_NAME := Image.gz
+TARGET_PREBUILT_KERNEL := device/xiaomi/tanzanite/prebuilt/Image.gz
 TARGET_NO_KERNEL := false
