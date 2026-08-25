@@ -16,6 +16,10 @@ jobs:
     permissions:
       contents: write
 
+    defaults:
+      run:
+        shell: bash
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -41,34 +45,32 @@ jobs:
 
       - name: Setup Device Tree & Build
         run: |
-          # Set exact root source path created by orangefox_sync.sh
-          if [ -f "$HOME/foxdata/fox_${{ env.MANIFEST_BRANCH }}/build/envsetup.sh" ]; then
+          # OrangeFox 12.1 creates fox_12.1 inside the path argument
+          if [ -d "$HOME/foxdata/fox_${{ env.MANIFEST_BRANCH }}" ]; then
             FOX_ROOT="$HOME/foxdata/fox_${{ env.MANIFEST_BRANCH }}"
-          elif [ -f "$HOME/foxdata/build/envsetup.sh" ]; then
-            FOX_ROOT="$HOME/foxdata"
           else
-            echo "Error: envsetup.sh not found in expected source locations."
-            ls -la $HOME/foxdata
-            exit 1
+            FOX_ROOT="$HOME/foxdata"
           fi
 
-          echo "OrangeFox source root verified at: $FOX_ROOT"
+          echo "OrangeFox source root set to: $FOX_ROOT"
 
           # Target device directory
           TARGET_DIR="$FOX_ROOT/${{ env.DEVICE_PATH }}"
           mkdir -p "$TARGET_DIR"
 
           # Copy ONLY device tree files quietly
-          rsync -aq --exclude='.git' --exclude='.github' --exclude='foxdata' --exclude='fox' "$GITHUB_WORKSPACE/" "$TARGET_DIR/"
+          rsync -aq --exclude='.git' --exclude='.github' --exclude='foxdata' --exclude='sync_tool' "$GITHUB_WORKSPACE/" "$TARGET_DIR/"
 
           cd "$FOX_ROOT"
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE="${{ env.DEVICE_NAME }}"
           export LC_ALL="C"
 
-          # Set build environment & lunch
+          # Source build environment & lunch target
+          set +e
           source build/envsetup.sh
-          lunch ${{ env.MAKEFILE_NAME }}-eng || lunch ${{ env.MAKEFILE_NAME }}-userdebug
+          lunch ${{ env.MAKEFILE_NAME }}-eng || lunch ${{ env.MAKEFILE_NAME }}-userdebug || lunch omni_${{ env.DEVICE_NAME }}-eng
+          set -e
 
           # Start compilation
           mka ${{ env.BUILD_TARGET }}image -j$(nproc --all)
