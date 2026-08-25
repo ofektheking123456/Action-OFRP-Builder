@@ -38,33 +38,35 @@ jobs:
 
       - name: Integrate Device Tree & Build Recovery
         run: |
-          # Set explicit root directory where orangefox_sync.sh syncs branch 12.1
-          if [ -d "$HOME/foxdata/fox_12.1" ]; then
-            FOX_ROOT="$HOME/foxdata/fox_12.1"
-          else
-            FOX_ROOT="$HOME/foxdata"
+          # Detect the exact directory where build/envsetup.sh resides
+          ENVSETUP=$(find $HOME/foxdata -name "envsetup.sh" | head -n 1)
+
+          if [ -z "$ENVSETUP" ]; then
+            echo "Error: build/envsetup.sh was not found!"
+            exit 1
           fi
 
+          FOX_ROOT=$(dirname $(dirname "$ENVSETUP"))
           echo "Targeting Fox root: $FOX_ROOT"
 
-          # Create target directory in source tree
+          # Create device tree directory in the synced Android source
           mkdir -p "$FOX_ROOT/device/xiaomi/tanzanite"
 
-          # Copy ONLY the files inside the checked-out device directory
-          cp -r $GITHUB_WORKSPACE/device/xiaomi/tanzanite/* "$FOX_ROOT/device/xiaomi/tanzanite/" 2>/dev/null || true
+          # Copy checked out files into the build tree
+          cp -r $GITHUB_WORKSPACE/device/xiaomi/tanzanite/* "$FOX_ROOT/device/xiaomi/tanzanite/"
 
           cd "$FOX_ROOT"
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE=tanzanite
           export LC_ALL="C"
 
-          # Load environment
+          # Load build environment
           source build/envsetup.sh
 
-          # Target setup
-          lunch twrp_tanzanite-eng 2>/dev/null || lunch omni_tanzanite-eng 2>/dev/null || lunch fox_tanzanite-eng 2>/dev/null || lunch twrp_tanzanite-userdebug
+          # Lunch target selection
+          lunch twrp_tanzanite-eng || lunch omni_tanzanite-eng || lunch fox_tanzanite-eng || lunch twrp_tanzanite-userdebug
 
-          # Build recovery image
+          # Start compilation
           mka recoveryimage -j$(nproc --all) || make recoveryimage -j$(nproc --all)
 
       - name: Package Output Artifacts
