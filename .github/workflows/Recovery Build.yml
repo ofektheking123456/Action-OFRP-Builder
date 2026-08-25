@@ -40,18 +40,21 @@ jobs:
 
       - name: Setup Device Tree & Build
         run: |
-          # Find source directory dynamically
-          if [ -d "$HOME/foxdata/fox_${{ env.MANIFEST_BRANCH }}" ]; then
-            FOX_ROOT="$HOME/foxdata/fox_${{ env.MANIFEST_BRANCH }}"
-          else
-            FOX_ROOT="$HOME/foxdata"
+          # Locate actual source directory created by OrangeFox sync script
+          FOX_ROOT=$(find $HOME/foxdata -maxdepth 2 -type f -name "envsetup.sh" -exec dirname {} \; | head -n 1)
+          
+          if [ -z "$FOX_ROOT" ]; then
+            echo "Error: Could not locate OrangeFox build source."
+            exit 1
           fi
+
+          echo "OrangeFox source root found at: $FOX_ROOT"
 
           # Target device directory
           TARGET_DIR="$FOX_ROOT/${{ env.DEVICE_PATH }}"
           mkdir -p "$TARGET_DIR"
 
-          # Copy repository makefiles safely
+          # Copy repository makefiles
           rsync -av --exclude='.git' --exclude='.github' "$GITHUB_WORKSPACE/" "$TARGET_DIR/"
 
           cd "$FOX_ROOT"
@@ -59,7 +62,7 @@ jobs:
           export FOX_BUILD_DEVICE="${{ env.DEVICE_NAME }}"
           export LC_ALL="C"
 
-          # Load build env setup
+          # Source build environment
           source build/envsetup.sh
 
           # Lunch OrangeFox target
