@@ -89,26 +89,24 @@ jobs:
 
       - name: Prepare Upload Artifacts
         run: |
-          mkdir -p output/
+          # Create output directory in current workspace
+          mkdir -p ${{ github.workspace }}/output
 
-          # 1. Search the ENTIRE out directory for any compiled .img file
-          find $HOME/foxdata/out/ -type f \( -name "*.img" \) -exec cp {} output/ \; 2>/dev/null || true
+          # Find and copy all OrangeFox zip files
+          find /home/runner/foxdata/ -type f -name "OrangeFox*.zip" -exec cp {} ${{ github.workspace }}/output/ \; 2>/dev/null || true
 
-          # 2. Copy the OrangeFox flashable zip
-          find $HOME/foxdata/ -type f -name "OrangeFox*.zip" -exec cp {} output/ \; 2>/dev/null || true
+          # Find and copy all compiled .img files from the out directory
+          find /home/runner/foxdata/out/ -type f \( -name "*.img" \) -exec cp {} ${{ github.workspace }}/output/ \; 2>/dev/null || true
 
-          # 3. Print every file caught in the logs to verify before release
-          echo "=== FILES FOUND FOR RELEASE ==="
-          ls -la output/
-          
-      - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v2
+          # Print contents of output directory to step logs
+          echo "=== COPIED ARTIFACTS ==="
+          ls -la ${{ github.workspace }}/output/
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         with:
-          files: output/*
-          tag_name: orangefox-${{ env.DEVICE_NAME }}-${{ github.run_id }}
-          name: OrangeFox Recovery for ${{ env.DEVICE_NAME }}
-          draft: false
-          prerelease: false
+          files: ${{ github.workspace }}/output/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
