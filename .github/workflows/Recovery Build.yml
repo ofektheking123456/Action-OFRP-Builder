@@ -26,16 +26,23 @@ jobs:
       - name: Sync OrangeFox Source & Build
         run: |
           export PATH="$HOME/bin:$PATH"
+          
+          # 1. Set global identity for repo tool
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
+          # 2. Clear extra headers injected by GitHub Checkout that break GitLab authentication
+          git config --global --unset-all http.https://github.com/.extraheader || true
+          
           mkdir -p workspace && cd workspace
 
-          # Official OrangeFox GitLab Manifest
+          # 3. Initialize OrangeFox Manifest (fox_12.1 branch)
           repo init -u https://gitlab.com/OrangeFox/Manifest.git -b fox_12.1 --depth=1
 
+          # 4. Sync source
           repo sync -c --no-clone-bundle --no-tags --prune -j$(nproc --all)
           
+          # 5. Setup device tree and build
           mkdir -p device/xiaomi/tanzanite
           cp -r $GITHUB_WORKSPACE/* device/xiaomi/tanzanite/
 
