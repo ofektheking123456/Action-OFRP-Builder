@@ -1,4 +1,4 @@
-name: Build OrangeFox Recovery
+name: OrangeFox Recovery Build
 
 on:
   workflow_dispatch:
@@ -6,94 +6,42 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
-    timeout-minutes: 360
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Free Up Disk Space
+      - name: Free Disk Space
         run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
           sudo apt-get clean
 
-      - name: Install Build Tools & Dependencies
+      - name: Install Build Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            gperf gcc-multilib gcc-10-multilib g++-multilib g++-10-multilib \
-            libc6-dev lib32ncurses5-dev x11proto-core-dev libx11-dev \
-            lib32z1-dev libgl1-mesa-dev libxml2-utils xsltproc unzip \
-            fontconfig git repo ccache python3 python-is-python3
+          sudo apt-get install -y bc build-essential ccache curl flex g++-multilib gcc-multilib git git-lfs gnupg gperf lib32ncurses5-dev lib32readline-dev lib32z1-dev libelf-dev liblz4-tool libncurses5 libncurses5-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev
+          mkdir -p ~/bin
+          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+          chmod a+rx ~/bin/repo
 
-      - name: Setup Git Credentials & Environment
+      - name: Sync OrangeFox Source & Build
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global credential.helper ""
-          echo "GIT_TERMINAL_PROMPT=0" >> $GITHUB_ENV
+          export PATH="$HOME/bin:$PATH"
+          mkdir workspace && cd workspace
+          repo init -u https://gitlab.com/OrangeFox/Manifest.git -b fox-12.1 --depth=1
+          repo sync -c --no-clone-bundle --no-tags --prune -j$(nproc --all)
+          
+          # Copy current repository device tree into target path
+          mkdir -p device/xiaomi/tanzanite
+          cp -r $GITHUB_WORKSPACE/* device/xiaomi/tanzanite/
 
-      - name: Initialize and Sync Minimal AOSP TWRP Manifest
-        run: |
-          mkdir -p $HOME/foxdata
-          cd $HOME/foxdata
-          repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1 --depth=1
-          repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
-
-      - name: Clone OrangeFox Vendor Tree
-        run: |
-          cd $HOME/foxdata
-          git clone https://gitlab.com/OrangeFox/vendor/recovery.git -b fox_12.1 vendor/fox --depth=1
-
-      - name: Clone Device Tree
-        run: |
-          cd $HOME/foxdata
-          git clone https://github.com/ofektheking123456/Redmi-note-14-4g-orangefox -b main device/xiaomi/tanzanite --depth=1
-
-      - name: Build OrangeFox Recovery
-        run: |
-          cd $HOME/foxdata
-          export ALLOW_MISSING_DEPENDENCIES=true
-          export FOX_BUILD_DEVICE=tanzanite
-          export LC_ALL="C"
-          export CCACHE_DIR=$HOME/foxdata/.ccache
-          export CCACHE_EXEC=/usr/bin/ccache
-          export USE_CCACHE=1
-          ccache -M 10G
-
-          set +e
+          # Build commands
           source build/envsetup.sh
-          set -e
-
-          lunch omni_tanzanite-eng || lunch omni_tanzanite-userdebug
+          export ALLOW_MISSING_DEPENDENCIES=true
+          lunch fox_tanzanite-eng
           mka recoveryimage -j$(nproc --all)
 
-      - name: Prepare Release Files
-        run: |
-          mkdir -p $HOME/output
-          cd $HOME/foxdata/out/target/product/tanzanite/
-          cp -f recovery.img $HOME/output/OrangeFox-tanzanite-recovery.img || true
-          cp -f OrangeFox*.zip $HOME/output/ || cp -f *.zip $HOME/output/ || true
-
-      - name: Upload Artifact to Workflow Summary
+      - name: Upload Output Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: OrangeFox-tanzanite
-          path: $HOME/output/*
-
-      - name: Publish Build to GitHub Releases
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.run_number }}
-          name: OrangeFox Recovery for tanzanite // ${{ github.run_number }}
-          body: |
-            Unofficial OrangeFox Recovery build for Xiaomi Redmi Note 14 4G (`tanzanite`).
-            Built automatically via GitHub Actions.
-          files: |
-            /home/runner/output/*.img
-            /home/runner/output/*.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          path: workspace/out/target/product/tanzanite/OrangeFox*.img
