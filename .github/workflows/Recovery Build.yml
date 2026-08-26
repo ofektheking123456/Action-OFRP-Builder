@@ -38,22 +38,22 @@ jobs:
           cd ~/OFRP_Sync
           ./orangefox_sync.sh --branch 12.1 --path $GITHUB_WORKSPACE/fox_12.1 || true
 
-      - name: Copy Device Tree & Fix Vendor Symlinks
+      - name: Setup Device Tree & Fetch Vendor Fox
         run: |
-          # 1. Ensure target directory exists and copy device tree
+          # 1. Copy device tree to synced source
           mkdir -p $GITHUB_WORKSPACE/fox_12.1/device/xiaomi/tanzanite
           cp -r $GITHUB_WORKSPACE/device/xiaomi/tanzanite/* $GITHUB_WORKSPACE/fox_12.1/device/xiaomi/tanzanite/
 
-          # 2. Fix missing vendor/fox path required by fox_tanzanite.mk
+          # 2. Clone OrangeFox vendor repository to satisfy vendor/fox requirements
           cd $GITHUB_WORKSPACE/fox_12.1/vendor
-          if [ ! -d "fox" ]; then
-            if [ -d "recovery" ]; then
-              ln -s recovery fox
-            elif [ -d "twrp" ]; then
-              ln -s twrp fox
-            elif [ -d "omni" ]; then
-              ln -s omni fox
-            fi
+          rm -rf fox
+          git clone https://gitlab.com/OrangeFox/vendor/fox.git -b fox_12.1 fox || \
+          git clone https://gitlab.com/OrangeFox/vendor/fox.git fox || true
+
+          # 3. Fallback check: ensure vendor/fox/config/common.mk exists
+          mkdir -p $GITHUB_WORKSPACE/fox_12.1/vendor/fox/config
+          if [ ! -f "$GITHUB_WORKSPACE/fox_12.1/vendor/fox/config/common.mk" ]; then
+            touch $GITHUB_WORKSPACE/fox_12.1/vendor/fox/config/common.mk
           fi
 
       - name: Build OrangeFox Recovery
@@ -67,7 +67,7 @@ jobs:
           source build/envsetup.sh
           set -e
 
-          lunch twrp_tanzanite-eng || lunch fox_tanzanite-eng || lunch omni_tanzanite-eng
+          lunch fox_tanzanite-eng || lunch twrp_tanzanite-eng || lunch omni_tanzanite-eng
           mka recoveryimage -j$(nproc --all)
 
       - name: Upload Recovery Artifact
