@@ -30,7 +30,10 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
           mkdir -p workspace && cd workspace
-          repo init -u https://gitlab.com/OrangeFox/Manifest.git -b fox-12.1 --depth=1 --no-repo-verify
+
+          # Use GitHub mirror to avoid GitLab authentication error
+          repo init -u https://github.com/OrangeFox-Recovery/Manifest.git -b fox-12.1 --depth=1
+
           repo sync -c --no-clone-bundle --no-tags --prune -j$(nproc --all)
           
           mkdir -p device/xiaomi/tanzanite
@@ -40,7 +43,7 @@ jobs:
           export ALLOW_MISSING_DEPENDENCIES=true
           lunch fox_tanzanite-eng
           mka recoveryimage -j$(nproc --all)
-
+          
       - name: Upload Output Artifacts
         uses: actions/upload-artifact@v4
         with:
