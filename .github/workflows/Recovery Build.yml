@@ -2,35 +2,6 @@ name: Build OrangeFox Recovery
 
 on:
   workflow_dispatch:
-    inputs:
-      MANIFEST_BRANCH:
-        description: 'OrangeFox Manifest Branch'
-        required: true
-        default: '12.1'
-      DEVICE_TREE_URL:
-        description: 'Device Tree URL'
-        required: true
-        default: 'https://github.com/ofektheking123456/Redmi-note-14-4g-orangefox'
-      DEVICE_TREE_BRANCH:
-        description: 'Device Tree Branch'
-        required: true
-        default: 'main'
-      DEVICE_PATH:
-        description: 'Device Path'
-        required: true
-        default: 'device/xiaomi/tanzanite'
-      DEVICE_NAME:
-        description: 'Device Name'
-        required: true
-        default: 'tanzanite'
-      MAKEFILE_NAME:
-        description: 'Makefile Name'
-        required: true
-        default: 'twp_tanzanite'
-      BUILD_TARGET:
-        description: 'Build Target (recoveryimage or bootimage)'
-        required: true
-        default: 'recoveryimage'
 
 jobs:
   build:
@@ -41,16 +12,16 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Cleanup & Free Disk Space
+      - name: Free Up Disk Space
         run: |
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
           sudo rm -rf /usr/local/share/boost
           sudo apt-get clean
-          echo "Disk space cleaned"
+          echo "Disk space cleaned."
 
-      - name: Install Build Dependencies
+      - name: Install Build Tools & Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -59,30 +30,30 @@ jobs:
             lib32z1-dev libgl1-mesa-dev libxml2-utils xsltproc unzip \
             fontconfig git repo ccache python3 python-is-python3
 
-      - name: Configure Git
+      - name: Setup Git Credentials & Environment
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global credential.helper ""
           echo "GIT_TERMINAL_PROMPT=0" >> $GITHUB_ENV
 
-      - name: Sync Minimal TWRP/Omni Source
+      - name: Initialize and Sync Minimal TWRP Manifest
         run: |
           mkdir -p $HOME/foxdata
           cd $HOME/foxdata
           
-          # Use public GitHub mirror to avoid GitLab authentication requirements
-          repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_omni.git -b twrp-${{ github.event.inputs.MANIFEST_BRANCH }} --depth=1
+          # Initialize TWRP/Omni minimal manifest (Android 12.1 base)
+          repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_omni.git -b twrp-12.1 --depth=1
           
-          # Force sync without git hooks or credential prompts
+          # Force sync without git prompts
           repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
 
       - name: Clone Device Tree
         run: |
           cd $HOME/foxdata
-          git clone ${{ github.event.inputs.DEVICE_TREE_URL }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} $HOME/foxdata/${{ github.event.inputs.DEVICE_PATH }} --depth=1
+          git clone https://github.com/ofektheking123456/Redmi-note-14-4g-orangefox -b main device/xiaomi/tanzanite --depth=1
 
-      - name: Build Recovery
+      - name: Build OrangeFox Recovery
         run: |
           cd $HOME/foxdata
           export CCACHE_DIR=$HOME/foxdata/.ccache
@@ -91,13 +62,13 @@ jobs:
           ccache -M 10G
 
           source build/envsetup.sh
-          lunch ${{ github.event.inputs.MAKEFILE_NAME }}-eng || lunch ${{ github.event.inputs.MAKEFILE_NAME }}-userdebug
-          mka ${{ github.event.inputs.BUILD_TARGET }} -j$(nproc --all)
+          lunch twp_tanzanite-eng || lunch twp_tanzanite-userdebug
+          mka recoveryimage -j$(nproc --all)
 
-      - name: Upload Artifacts
+      - name: Upload Output Build
         uses: actions/upload-artifact@v4
         with:
-          name: OrangeFox-Recovery-${{ github.event.inputs.DEVICE_NAME }}
+          name: OrangeFox-tanzanite
           path: |
-            $HOME/foxdata/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/*.img
-            $HOME/foxdata/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/*.zip
+            $HOME/foxdata/out/target/product/tanzanite/*.img
+            $HOME/foxdata/out/target/product/tanzanite/*.zip
