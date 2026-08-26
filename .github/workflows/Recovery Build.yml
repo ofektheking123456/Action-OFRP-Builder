@@ -43,10 +43,18 @@ jobs:
         run: |
           mkdir -p $HOME/foxdata
           cd $HOME/foxdata
-          git clone https://gitlab.com/OrangeFox/sync_tool.git sync_tool
-          cd sync_tool
-          export FOX_VERSION="${{ env.MANIFEST_BRANCH }}"
-          ./orangefox_sync.sh --branch ${{ env.MANIFEST_BRANCH }} --path $HOME/foxdata
+          GIT_TERMINAL_PROMPT=0 git clone --depth=1 https://gitlab.com/OrangeFox/sync_tool.git sync_tool || true
+          
+          if [ -d "sync_tool" ]; then
+            cd sync_tool
+            export FOX_VERSION="${{ env.MANIFEST_BRANCH }}"
+            ./orangefox_sync.sh --branch ${{ env.MANIFEST_BRANCH }} --path $HOME/foxdata
+          else
+            echo "GitLab sync_tool clone failed, initializing repo directly..."
+            cd $HOME/foxdata
+            repo init -u https://gitlab.com/OrangeFox/Manifest.git -b fox_${{ env.MANIFEST_BRANCH }} --depth=1
+            repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
+          fi
 
       - name: Setup Device Tree & Build
         run: |
