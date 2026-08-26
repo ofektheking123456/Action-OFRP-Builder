@@ -90,11 +90,17 @@ jobs:
       - name: Prepare Upload Artifacts
         run: |
           mkdir -p output/
-          # Copy the compiled flashable zip
-          find $HOME/foxdata/ -maxdepth 8 -type f -name "OrangeFox*.zip" -exec cp {} output/ \;
-          # Also grab recovery.img / boot.img directly from out directory
-          find $HOME/foxdata/out/target/product/tanzanite/ -maxdepth 2 -type f \( -name "recovery.img" -o -name "boot.img" -o -name "vendor_boot.img" \) -exec cp {} output/ \;
 
+          # 1. Grab all generated OrangeFox zip files
+          find $HOME/foxdata -type f -name "OrangeFox*.zip" -exec cp {} output/ \; 2>/dev/null || true
+
+          # 2. Grab compiled partition images directly from out target directory
+          find $HOME/foxdata/out/target/product/ -type f \( -name "recovery.img" -o -name "boot.img" -o -name "vendor_boot.img" \) -exec cp {} output/ \; 2>/dev/null || true
+
+          # 3. List copied files in workflow log for verification
+          echo "=== Content of output folder ==="
+          ls -la output/
+          
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
