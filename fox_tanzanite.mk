@@ -1,5 +1,5 @@
 # Inherit OrangeFox configuration
-$(call inherit-product, vendor/fox/config/common.mk)
+$(call inherit-product, vendor/recovery/config/common.mk)
 
 # Inherit device configuration
 $(call inherit-product, device/xiaomi/tanzanite/device.mk)
