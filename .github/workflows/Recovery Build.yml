@@ -1,7 +1,9 @@
-name: OrangeFox Recovery Build
+name: Recovery Build
 
 on:
   workflow_dispatch:
+  push:
+    branches: [ main ]
 
 jobs:
   build:
