@@ -31,8 +31,8 @@ jobs:
           
           mkdir -p workspace && cd workspace
 
-          # Use GitHub mirror to avoid GitLab authentication error
-          repo init -u https://github.com/OrangeFox-Recovery/Manifest.git -b fox-12.1 --depth=1
+          # Official OrangeFox GitLab Manifest
+          repo init -u https://gitlab.com/OrangeFox/Manifest.git -b fox_12.1 --depth=1
 
           repo sync -c --no-clone-bundle --no-tags --prune -j$(nproc --all)
           
