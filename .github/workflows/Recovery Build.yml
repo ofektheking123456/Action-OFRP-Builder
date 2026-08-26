@@ -37,13 +37,13 @@ jobs:
           git config --global credential.helper ""
           echo "GIT_TERMINAL_PROMPT=0" >> $GITHUB_ENV
 
-      - name: Initialize and Sync Minimal TWRP Manifest
+      - name: Initialize and Sync Minimal AOSP TWRP Manifest
         run: |
           mkdir -p $HOME/foxdata
           cd $HOME/foxdata
           
-          # Initialize TWRP/Omni minimal manifest (Android 12.1 base)
-          repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_omni.git -b twrp-12.1 --depth=1
+          # Use platform_manifest_twrp_aosp for Android 10+ (12.1)
+          repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1 --depth=1
           
           # Force sync without git prompts
           repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
@@ -62,7 +62,7 @@ jobs:
           ccache -M 10G
 
           source build/envsetup.sh
-          lunch twp_tanzanite-eng || lunch twp_tanzanite-userdebug
+          lunch twp_tanzanite-eng || lunch twp_tanzanite-userdebug || lunch omni_tanzanite-eng
           mka recoveryimage -j$(nproc --all)
 
       - name: Upload Output Build
