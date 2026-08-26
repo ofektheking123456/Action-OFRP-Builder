@@ -27,33 +27,33 @@ jobs:
           mkdir -p ~/bin
           curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
           chmod a+rx ~/bin/repo
-
+  
       - name: Sync OrangeFox Source & Build
         run: |
           export PATH="$HOME/bin:$PATH"
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # 1. Clone the official OrangeFox sync repository
-          cd $GITHUB_WORKSPACE
+          # 1. Clone sync script
           git clone https://gitlab.com/OrangeFox/sync.git ~/OFRP_Sync
           
-          # 2. Run the sync script for branch 12.1 into workspace/
+          # 2. Run sync into workspace
           mkdir -p workspace
           cd ~/OFRP_Sync
           ./orangefox_sync.sh --branch 12.1 --path $GITHUB_WORKSPACE/workspace
 
-          # 3. Copy device tree into the synced workspace
-          cd $GITHUB_WORKSPACE/workspace
-          mkdir -p device/xiaomi/tanzanite
-          cp -r $GITHUB_WORKSPACE/* device/xiaomi/tanzanite/
+          # 3. Create target device path
+          mkdir -p $GITHUB_WORKSPACE/workspace/device/xiaomi/tanzanite
 
-          # 4. Build recovery
+          # 4. Copy repository files into device tree, EXCLUDING workspace to prevent recursion
+          rsync -av --exclude='workspace' --exclude='.git' $GITHUB_WORKSPACE/ $GITHUB_WORKSPACE/workspace/device/xiaomi/tanzanite/
+
+          # 5. Build recovery
+          cd $GITHUB_WORKSPACE/workspace
           source build/envsetup.sh
           export ALLOW_MISSING_DEPENDENCIES=true
           lunch fox_tanzanite-eng
           mka recoveryimage -j$(nproc --all)
-
           
       - name: Upload Output Artifacts
         uses: actions/upload-artifact@v4
