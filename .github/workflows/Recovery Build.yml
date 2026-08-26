@@ -91,17 +91,14 @@ jobs:
         run: |
           mkdir -p output/
 
-          # Debug: Output all created .img files in the build tree
-          echo "=== Found Image Files ==="
-          find $HOME/foxdata/out/ -type f -name "*.img"
+          # 1. Search the ENTIRE out directory for any compiled .img file
+          find $HOME/foxdata/out/ -type f \( -name "*.img" \) -exec cp {} output/ \; 2>/dev/null || true
 
-          # Copy images to output
-          find $HOME/foxdata/out/ -type f \( -name "recovery.img" -o -name "boot.img" -o -name "vendor_boot.img" \) -exec cp {} output/ \;
+          # 2. Copy the OrangeFox flashable zip
+          find $HOME/foxdata/ -type f -name "OrangeFox*.zip" -exec cp {} output/ \; 2>/dev/null || true
 
-          # Copy zip files
-          find $HOME/foxdata/ -type f -name "OrangeFox*.zip" -exec cp {} output/ \;
-
-          echo "=== Output Folder Contents ==="
+          # 3. Print every file caught in the logs to verify before release
+          echo "=== FILES FOUND FOR RELEASE ==="
           ls -la output/
           
       - name: Upload to GitHub Release
