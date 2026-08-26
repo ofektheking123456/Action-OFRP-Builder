@@ -32,7 +32,7 @@ jobs:
       - name: Setup Git Credentials & Environment
         run: |
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global credential.helper ""
           echo "GIT_TERMINAL_PROMPT=0" >> $GITHUB_ENV
 
@@ -60,8 +60,12 @@ jobs:
           export USE_CCACHE=1
           ccache -M 10G
 
+          # Disable immediate exit on script error during envsetup
+          set +e
           source build/envsetup.sh
-          lunch omni_tanzanite-eng || lunch omni_tanzanite-userdebug || lunch twp_tanzanite-eng
+          set -e
+
+          lunch twp_tanzanite-eng || lunch omni_tanzanite-eng || lunch twp_tanzanite-userdebug
           mka recoveryimage -j$(nproc --all)
 
       - name: Prepare Release Files
