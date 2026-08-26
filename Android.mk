@@ -1,5 +1,5 @@
 LOCAL_PATH := $(call my-dir)
 
-ifneq ($(filter tanzanite,$(TARGET_DEVICE)),)
+ifeq ($(TARGET_DEVICE), tanzanite)
 include $(call all-makefiles-under,$(LOCAL_PATH))
 endif
