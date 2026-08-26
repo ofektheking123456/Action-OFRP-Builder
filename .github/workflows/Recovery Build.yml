@@ -32,38 +32,42 @@ jobs:
       - name: Setup Git Credentials & Environment
         run: |
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.email "github-actions[bot]"
           git config --global credential.helper ""
           echo "GIT_TERMINAL_PROMPT=0" >> $GITHUB_ENV
 
-      - name: Initialize and Sync Minimal AOSP TWRP Manifest
+      - name: Sync Official OrangeFox 12.1 Source & Vendor
         run: |
-          mkdir -p $HOME/foxdata
-          cd $HOME/foxdata
-          repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1 --depth=1
-          repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
+          mkdir -p $HOME/OrangeFox_sync
+          cd $HOME/OrangeFox_sync
+          git clone https://gitlab.com/OrangeFox/sync.git
+          cd sync
+          ./orangefox_sync.sh --branch 12.1 --path $HOME/fox_12.1
 
       - name: Clone Device Tree
         run: |
-          cd $HOME/foxdata
+          cd $HOME/fox_12.1
           git clone https://github.com/ofektheking123456/Redmi-note-14-4g-orangefox -b main device/xiaomi/tanzanite --depth=1
 
       - name: Build OrangeFox Recovery
         run: |
-          cd $HOME/foxdata
-          export CCACHE_DIR=$HOME/foxdata/.ccache
+          cd $HOME/fox_12.1
+          export ALLOW_MISSING_DEPENDENCIES=true
+          export FOX_BUILD_DEVICE=tanzanite
+          export LC_ALL="C"
+          export CCACHE_DIR=$HOME/fox_12.1/.ccache
           export CCACHE_EXEC=/usr/bin/ccache
           export USE_CCACHE=1
           ccache -M 10G
 
           source build/envsetup.sh
-          lunch twp_tanzanite-eng || lunch twp_tanzanite-userdebug || lunch omni_tanzanite-eng
+          lunch omni_tanzanite-eng || lunch omni_tanzanite-userdebug || lunch twp_tanzanite-eng
           mka recoveryimage -j$(nproc --all)
 
       - name: Prepare Release Files
         run: |
           mkdir -p $HOME/output
-          cd $HOME/foxdata/out/target/product/tanzanite/
+          cd $HOME/fox_12.1/out/target/product/tanzanite/
           cp -f recovery.img $HOME/output/OrangeFox-tanzanite-recovery.img || true
           cp -f OrangeFox*.zip $HOME/output/ || cp -f *.zip $HOME/output/ || true
 
