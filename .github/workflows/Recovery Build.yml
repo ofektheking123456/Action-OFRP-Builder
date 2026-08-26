@@ -9,7 +9,12 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
+        
+      - name: Checkout Device Tree
+        uses: actions/checkout@v4
+        with:
+          path: workspace/device/xiaomi/tanzanite
+          
       - name: Free Disk Space
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
