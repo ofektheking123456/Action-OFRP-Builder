@@ -21,7 +21,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y git-core gnupg flex bison build-essential zip curl zlib1g-dev \
             gcc-multilib g++-multilib libc6-dev-i386 lib32ncurses-dev x11proto-core-dev \
-            libx11-dev lib32z1-dev libgl1-mesa-dev libxml2-utils xsltproc unzip fontconfig rsync
+            libx11-dev lib32z1-dev libgl1-mesa-dev libxml2-utils xsltproc unzip fontconfig rsync python3
 
           mkdir -p ~/bin
           curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
@@ -38,19 +38,25 @@ jobs:
           cd ~/OFRP_Sync
           ./orangefox_sync.sh --branch 12.1 --path $GITHUB_WORKSPACE/fox_12.1 || true
 
-      - name: Copy Device Tree to Sync Tree
+      - name: Copy Device Tree
         run: |
-          mkdir -p $GITHUB_WORKSPACE/fox_12.1/device/xiaomi/
-          cp -r $GITHUB_WORKSPACE/device/xiaomi/tanzanite $GITHUB_WORKSPACE/fox_12.1/device/xiaomi/
+          mkdir -p $GITHUB_WORKSPACE/fox_12.1/device/xiaomi/tanzanite
+          cp -r $GITHUB_WORKSPACE/device/xiaomi/tanzanite/* $GITHUB_WORKSPACE/fox_12.1/device/xiaomi/tanzanite/
 
       - name: Build OrangeFox Recovery
+        defaults:
+          run:
+            shell: bash
+            working-directory: ${{ github.workspace }}/fox_12.1
         run: |
-          cd $GITHUB_WORKSPACE/fox_12.1
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE=tanzanite
           export LC_ALL="C"
 
+          set +e
           source build/envsetup.sh
+          set -e
+
           lunch twrp_tanzanite-eng || lunch omni_tanzanite-eng || lunch fox_tanzanite-eng
           mka recoveryimage -j$(nproc --all)
 
