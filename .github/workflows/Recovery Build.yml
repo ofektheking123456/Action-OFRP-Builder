@@ -89,24 +89,22 @@ jobs:
 
       - name: Prepare Upload Artifacts
         run: |
-          # Create output directory in current workspace
-          mkdir -p ${{ github.workspace }}/output
+          mkdir -p output/
 
-          # Find and copy all OrangeFox zip files
-          find /home/runner/foxdata/ -type f -name "OrangeFox*.zip" -exec cp {} ${{ github.workspace }}/output/ \; 2>/dev/null || true
+          # 1. Search root and home for any built .zip or .img files
+          find . -type f \( -name "OrangeFox*.zip" -o -name "*.img" \) -exec cp {} output/ \; 2>/dev/null || true
+          find /home/runner/ -type f \( -name "OrangeFox*.zip" -o -name "*.img" \) -exec cp {} output/ \; 2>/dev/null || true
 
-          # Find and copy all compiled .img files from the out directory
-          find /home/runner/foxdata/out/ -type f \( -name "*.img" \) -exec cp {} ${{ github.workspace }}/output/ \; 2>/dev/null || true
-
-          # Print contents of output directory to step logs
-          echo "=== COPIED ARTIFACTS ==="
-          ls -la ${{ github.workspace }}/output/
+          # 2. Print output contents to logs to double check
+          echo "=== FINAL OUTPUT CONTENTS ==="
+          ls -la output/
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         with:
-          files: ${{ github.workspace }}/output/*
+          tag_name: "OFRP-tanzanite-${{ github.run_number }}"
+          name: "OrangeFox Recovery Build #${{ github.run_number }}"
+          files: output/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
