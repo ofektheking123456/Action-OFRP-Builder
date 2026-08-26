@@ -14,7 +14,7 @@ jobs:
       - name: Checkout Device Tree
         uses: actions/checkout@v4
         with:
-          path: fox_12.1/device/xiaomi/tanzanite
+          path: device/xiaomi/tanzanite
 
       - name: Install Build Dependencies & Repo Tool
         run: |
@@ -23,24 +23,28 @@ jobs:
             gcc-multilib g++-multilib libc6-dev-i386 lib32ncurses-dev x11proto-core-dev \
             libx11-dev lib32z1-dev libgl1-mesa-dev libxml2-utils xsltproc unzip fontconfig rsync
 
-          # Install Google Repo Tool
           mkdir -p ~/bin
           curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
           chmod a+rx ~/bin/repo
           echo "$HOME/bin" >> $GITHUB_PATH
 
-      - name: Sync OrangeFox Source & Build
+      - name: Sync OrangeFox Source
         run: |
           export PATH="$HOME/bin:$PATH"
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          # 1. Sync Minimal OrangeFox 12.1 Manifest
           git clone https://gitlab.com/OrangeFox/sync.git ~/OFRP_Sync
           cd ~/OFRP_Sync
-          ./orangefox_sync.sh --branch 12.1 --path $GITHUB_WORKSPACE/fox_12.1
+          ./orangefox_sync.sh --branch 12.1 --path $GITHUB_WORKSPACE/fox_12.1 || true
 
-          # 2. Build OrangeFox Recovery
+      - name: Copy Device Tree to Sync Tree
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/fox_12.1/device/xiaomi/
+          cp -r $GITHUB_WORKSPACE/device/xiaomi/tanzanite $GITHUB_WORKSPACE/fox_12.1/device/xiaomi/
+
+      - name: Build OrangeFox Recovery
+        run: |
           cd $GITHUB_WORKSPACE/fox_12.1
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE=tanzanite
