@@ -26,15 +26,16 @@ jobs:
       - name: Sync OrangeFox Source & Build
         run: |
           export PATH="$HOME/bin:$PATH"
-          mkdir workspace && cd workspace
-          repo init -u https://gitlab.com/OrangeFox/Manifest.git -b fox-12.1 --depth=1
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          mkdir -p workspace && cd workspace
+          repo init -u https://gitlab.com/OrangeFox/Manifest.git -b fox-12.1 --depth=1 --no-repo-verify
           repo sync -c --no-clone-bundle --no-tags --prune -j$(nproc --all)
           
-          # Copy current repository device tree into target path
           mkdir -p device/xiaomi/tanzanite
           cp -r $GITHUB_WORKSPACE/* device/xiaomi/tanzanite/
 
-          # Build commands
           source build/envsetup.sh
           export ALLOW_MISSING_DEPENDENCIES=true
           lunch fox_tanzanite-eng
