@@ -19,7 +19,6 @@ jobs:
           sudo rm -rf /opt/ghc
           sudo rm -rf /usr/local/share/boost
           sudo apt-get clean
-          echo "Disk space cleaned."
 
       - name: Install Build Tools & Dependencies
         run: |
@@ -41,11 +40,7 @@ jobs:
         run: |
           mkdir -p $HOME/foxdata
           cd $HOME/foxdata
-          
-          # Use platform_manifest_twrp_aosp for Android 10+ (12.1)
           repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1 --depth=1
-          
-          # Force sync without git prompts
           repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
 
       - name: Clone Device Tree
@@ -65,10 +60,29 @@ jobs:
           lunch twp_tanzanite-eng || lunch twp_tanzanite-userdebug || lunch omni_tanzanite-eng
           mka recoveryimage -j$(nproc --all)
 
-      - name: Upload Output Build
+      - name: Prepare Release Files
+        run: |
+          mkdir -p $HOME/output
+          cd $HOME/foxdata/out/target/product/tanzanite/
+          cp -f recovery.img $HOME/output/OrangeFox-tanzanite-recovery.img || true
+          cp -f OrangeFox*.zip $HOME/output/ || cp -f *.zip $HOME/output/ || true
+
+      - name: Upload Artifact to Workflow Summary
         uses: actions/upload-artifact@v4
         with:
           name: OrangeFox-tanzanite
-          path: |
-            $HOME/foxdata/out/target/product/tanzanite/*.img
-            $HOME/foxdata/out/target/product/tanzanite/*.zip
+          path: $HOME/output/*
+
+      - name: Publish Build to GitHub Releases
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.run_number }}
+          name: OrangeFox Recovery for tanzanite // ${{ github.run_number }}
+          body: |
+            Unofficial OrangeFox Recovery build for Xiaomi Redmi Note 14 4G (`tanzanite`).
+            Built automatically via GitHub Actions.
+          files: |
+            /home/runner/output/*.img
+            /home/runner/output/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
