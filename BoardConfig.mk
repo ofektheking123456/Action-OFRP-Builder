@@ -18,3 +18,11 @@ TARGET_SUPPORTS_64_BIT_APPS := true
 BOARD_KERNEL_IMAGE_NAME := Image.gz
 TARGET_PREBUILT_KERNEL := device/xiaomi/tanzanite/prebuilt/Image.gz
 TARGET_NO_KERNEL := false
+
+# Recovery / Boot Config
+BOARD_HAS_NO_REAL_SDCARD := true
+BOARD_RECOVERYIMAGE_PARTITION_SIZE := 100663296
+BOARD_FLASH_BLOCK_SIZE := 131072
+
+# Tell build system that recovery is stored in boot/vendor_boot
+BOARD_USES_RECOVERY_AS_BOOT := true
