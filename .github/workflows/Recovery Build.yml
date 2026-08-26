@@ -5,58 +5,39 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        
       - name: Checkout Device Tree
         uses: actions/checkout@v4
         with:
-          path: workspace/device/xiaomi/tanzanite
-          
-      - name: Free Disk Space
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
-          sudo apt-get clean
+          path: fox_12.1/device/xiaomi/tanzanite
 
       - name: Install Build Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc build-essential ccache curl flex g++-multilib gcc-multilib git git-lfs gnupg gperf lib32ncurses5-dev lib32readline-dev lib32z1-dev libelf-dev liblz4-tool libncurses5 libncurses5-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev
-          mkdir -p ~/bin
-          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
-          chmod a+rx ~/bin/repo
-  
+          sudo apt-get install -y git-core gnupg flex bison build-essential zip curl zlib1g-dev \
+            gcc-multilib g++-multilib libc6-dev-i386 lib32ncurses-dev x11proto-core-dev \
+            libx11-dev lib32z1-dev libgl1-mesa-dev libxml2-utils xsltproc unzip fontconfig
+
       - name: Sync OrangeFox Source & Build
         run: |
           export PATH="$HOME/bin:$PATH"
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # 1. Clone sync script
+
+          # 1. Sync OrangeFox 12.1 source directly
           git clone https://gitlab.com/OrangeFox/sync.git ~/OFRP_Sync
-          
-          # 2. Run sync into workspace
-          mkdir -p workspace
           cd ~/OFRP_Sync
-          ./orangefox_sync.sh --branch 12.1 --path $GITHUB_WORKSPACE/workspace
+          ./orangefox_sync.sh --branch 12.1 --path $GITHUB_WORKSPACE/fox_12.1
 
-          # 3. Create target device path
-          mkdir -p $GITHUB_WORKSPACE/workspace/device/xiaomi/tanzanite
-
-          # 4. Copy repository files into device tree, EXCLUDING workspace to prevent recursion
-          rsync -av --exclude='workspace' --exclude='.git' $GITHUB_WORKSPACE/ $GITHUB_WORKSPACE/workspace/device/xiaomi/tanzanite/
-
-          # 5. Build recovery
-          cd $GITHUB_WORKSPACE/workspace
-          source build/envsetup.sh
+          # 2. Setup environment and compile
+          cd $GITHUB_WORKSPACE/fox_12.1
           export ALLOW_MISSING_DEPENDENCIES=true
-          lunch fox_tanzanite-eng
+          export FOX_BUILD_DEVICE=tanzanite
+          export LC_ALL="C"
+
+          source build/envsetup.sh
+          lunch twrp_tanzanite-eng || lunch omni_tanzanite-eng
           mka recoveryimage -j$(nproc --all)
           
-      - name: Upload Output Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: OrangeFox-tanzanite
-          path: workspace/out/target/product/tanzanite/OrangeFox*.img
